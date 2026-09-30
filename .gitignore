@@ -1,4 +1,26 @@
+# dependencies
 node_modules
+.pnp
+.pnp.js
+
+# next
 .next
+out
+build
+next-env.d.ts
+
+# env (example se versiona)
 .env*.local
+.env
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+*.tsbuildinfo
+.vercel
 .superpowers
+
+# playwright
+test-results
+playwright-report
