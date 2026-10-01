@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean, check, integer, pgEnum, pgSequence, pgTable, serial, text,
-  timestamp, uniqueIndex,
+  index, timestamp, uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const orderStatus = pgEnum("order_status", ["pending", "confirmed", "cancelled"]);
@@ -61,7 +61,10 @@ export const orders = pgTable("orders", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
   cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
-});
+}, (t) => [
+  index("orders_status_idx").on(t.status),
+  index("orders_confirmed_at_idx").on(t.confirmedAt),
+]);
 
 export const orderItems = pgTable("order_items", {
   id: serial("id").primaryKey(),
@@ -72,7 +75,10 @@ export const orderItems = pgTable("order_items", {
   colorName: text("color_name").notNull(),
   unitPrice: integer("unit_price").notNull(),
   qty: integer("qty").notNull(),
-});
+}, (t) => [
+  index("order_items_order_id_idx").on(t.orderId),
+  index("order_items_variant_id_idx").on(t.variantId),
+]);
 
 export const stockMovements = pgTable("stock_movements", {
   id: serial("id").primaryKey(),
@@ -91,7 +97,7 @@ export const adminUsers = pgTable("admin_users", {
 
 export const settings = pgTable("settings", {
   id: integer("id").primaryKey().default(1),
-  whatsappNumber: text("whatsapp_number").notNull().default("3000000000"),
+  whatsappNumber: text("whatsapp_number").notNull().default(""),
   storeName: text("store_name").notNull().default("OFFLINE"),
   lowStockThreshold: integer("low_stock_threshold").notNull().default(3),
 });

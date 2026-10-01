@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { makeTestDb } from "../helpers/db";
 import { sql } from "drizzle-orm";
-import { hit } from "@/server/ratelimit";
+import { hit, pruneRateLimits } from "@/server/ratelimit";
 
 describe("hit", () => {
   it("permite hasta el límite y luego bloquea", async () => {
@@ -25,5 +25,18 @@ describe("hit", () => {
     await hit(db, "a", 1, 60);
     expect(await hit(db, "a", 1, 60)).toBe(false);
     expect(await hit(db, "b", 1, 60)).toBe(true);
+  });
+});
+
+describe("pruneRateLimits", () => {
+  it("borra filas de más de 1 día y conserva las recientes", async () => {
+    const db = await makeTestDb();
+    await hit(db, "old", 5, 60);
+    await hit(db, "new", 5, 60);
+    await db.execute(sql`update rate_limits set window_start = now() - interval '2 days' where key = 'old'`);
+    await pruneRateLimits(db);
+    const r = await db.execute(sql`select key from rate_limits`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((r as any).rows.map((x: { key: string }) => x.key)).toEqual(["new"]);
   });
 });

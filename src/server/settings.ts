@@ -7,3 +7,6 @@ export async function getSettings(db: Db) {
   const [s] = await db.select().from(settings).where(eq(settings.id, 1));
   return { whatsappNumber: s.whatsappNumber, storeName: s.storeName, lowStockThreshold: s.lowStockThreshold };
 }
+
+/** La tienda solo puede recibir pedidos cuando hay un número de WhatsApp configurado. */
+export const isStoreConfigured = (s: { whatsappNumber: string }): boolean => s.whatsappNumber.trim() !== "";

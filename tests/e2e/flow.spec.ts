@@ -35,7 +35,7 @@ test("cliente pide, admin confirma y el stock baja", async ({ page }) => {
   await page.getByLabel("Contraseña").fill(adminPassword);
   await page.getByRole("button", { name: /entrar/i }).click();
   await page.waitForURL(/\/admin(?!\/login)/);
-  await page.goto("/admin/pedidos?status=pending");
+  await page.goto("/admin/pedidos?estado=pending");
   await page.getByRole("link", { name: /OFF-\d{4}/ }).first().click();
   await page.getByRole("button", { name: /confirmar pedido/i }).click();
   await page.getByRole("dialog").getByRole("button", { name: /confirmar/i }).click();

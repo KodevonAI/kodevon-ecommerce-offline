@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getDb } from "@/db/client";
 import { requireAdmin } from "@/server/auth";
-import { getSettings } from "@/server/settings";
+import { getSettings, isStoreConfigured } from "@/server/settings";
 import { getSummary, lowStock, resolveRange, salesByDay, topProducts, type RangeKey } from "@/server/stats";
 import { formatCop } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const active = key === "custom" && (fromRaw !== day(range.from) || toRaw !== day(range.to)) ? "30d" : key;
 
   const db = getDb();
-  const { lowStockThreshold } = await getSettings(db);
+  const settings = await getSettings(db);
+  const { lowStockThreshold } = settings;
   const [summary, days, top, low] = await Promise.all([
     getSummary(db, range),
     salesByDay(db, range),
@@ -38,6 +39,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-semibold text-neutral-900">Dashboard</h1>
+      {!isStoreConfigured(settings) && (
+        <div role="alert" className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Configura el número de WhatsApp en{" "}
+          <Link href="/admin/ajustes" className="font-medium underline">Ajustes</Link>
+          : sin él la tienda no puede recibir pedidos.
+        </div>
+      )}
       <RangeFilter active={active} from={day(range.from)} to={day(range.to)} />
       <StatCards {...summary} />
 

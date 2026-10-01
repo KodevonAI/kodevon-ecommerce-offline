@@ -8,7 +8,7 @@ import { clientIp } from "@/server/auth";
 import { isDemoMode } from "@/server/cached";
 import { createOrder } from "@/server/orders";
 import { hit } from "@/server/ratelimit";
-import { getSettings } from "@/server/settings";
+import { getSettings, isStoreConfigured } from "@/server/settings";
 import type { ItemIssue } from "@/server/types";
 
 export type PlaceOrderResult =
@@ -38,6 +38,10 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
   if (!(await hit(db, `order:${await clientIp()}`, 5, 10 * 60))) {
     return { ok: false, error: "Demasiados pedidos seguidos. Intenta en unos minutos." };
   }
+  const s = await getSettings(db);
+  if (!isStoreConfigured(s)) {
+    return { ok: false, error: "La tienda aún no está configurada. Escríbenos por otro medio." };
+  }
   const r = await createOrder(db, parsed.data);
   if (!r.ok) {
     if (r.error.code === "invalid_items") {
@@ -45,7 +49,6 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
     }
     return { ok: false, error: "No pudimos crear el pedido" };
   }
-  const s = await getSettings(db);
   const text = buildOrderMessage({ code: r.data.code, name: parsed.data.name, lines: r.data.lines, total: r.data.total });
   revalidateTag("orders");
   return { ok: true, code: r.data.code, waUrl: buildWaUrl(s.whatsappNumber, text) };
