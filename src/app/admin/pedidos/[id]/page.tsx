@@ -91,7 +91,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
                       <TableCell>{i.qty}</TableCell>
                       <TableCell>{formatCop(i.unitPrice)}</TableCell>
                       <TableCell>{formatCop(i.unitPrice * i.qty)}</TableCell>
-                      <TableCell className={missing || short ? "font-medium text-red-600" : undefined}>
+                      <TableCell className={isPending && (missing || short) ? "font-medium text-red-600" : undefined}>
                         {missing ? "Variante eliminada" : i.currentStock}
                       </TableCell>
                     </TableRow>

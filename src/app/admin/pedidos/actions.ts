@@ -16,12 +16,12 @@ function humanize(e: OrderError): string {
   if (e.code === "insufficient_stock") {
     return "Stock insuficiente: " + e.lines.map((l) => `${l.name} (pide ${l.needed}, hay ${l.available})`).join("; ");
   }
-  return MSG[e.code] ?? "No se pudo completar la acción";
+  return MSG[e.code];
 }
 
 type ActionResult = { ok: string } | { error: string };
 
-async function run(id: number, fn: (db: Db, id: number) => Promise<Result<unknown>>): Promise<ActionResult> {
+async function run(id: number, okMsg: string, fn: (db: Db, id: number) => Promise<Result<unknown>>): Promise<ActionResult> {
   await requireAdmin();
   if (!Number.isInteger(id) || id <= 0) return { error: MSG.not_found };
   const r = await fn(getDb(), id);
@@ -29,12 +29,12 @@ async function run(id: number, fn: (db: Db, id: number) => Promise<Result<unknow
   revalidatePath("/admin/pedidos");
   revalidatePath(`/admin/pedidos/${id}`);
   revalidatePath("/admin");
-  return r.ok ? { ok: "Listo" } : { error: humanize(r.error) };
+  return r.ok ? { ok: okMsg } : { error: humanize(r.error) };
 }
 
 export async function confirmOrderAction(id: number): Promise<ActionResult> {
-  return run(id, confirmOrder);
+  return run(id, "Pedido confirmado", confirmOrder);
 }
 export async function cancelOrderAction(id: number): Promise<ActionResult> {
-  return run(id, cancelOrder);
+  return run(id, "Pedido cancelado", cancelOrder);
 }

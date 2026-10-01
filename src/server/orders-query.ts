@@ -45,6 +45,11 @@ export async function listOrders(db: Db, f: OrderFilters): Promise<{ rows: Order
   return { rows, total: Number(n) };
 }
 
+export async function countOrders(db: Db, status?: "pending" | "confirmed" | "cancelled"): Promise<number> {
+  const [{ n }] = await db.select({ n: count() }).from(orders).where(status ? eq(orders.status, status) : undefined);
+  return Number(n);
+}
+
 export async function getOrderDetail(db: Db, id: number) {
   const [order] = await db.select().from(orders).where(eq(orders.id, id));
   if (!order) return null;

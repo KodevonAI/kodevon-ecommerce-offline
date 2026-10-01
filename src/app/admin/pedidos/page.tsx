@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getDb } from "@/db/client";
 import { requireAdmin } from "@/server/auth";
-import { listOrders, ORDERS_PAGE_SIZE, type OrderFilters } from "@/server/orders-query";
+import { countOrders, listOrders, ORDERS_PAGE_SIZE, type OrderFilters } from "@/server/orders-query";
 import { formatCop } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -47,11 +47,13 @@ export default async function PedidosPage({ searchParams }: { searchParams: Prom
   const page = Number.isInteger(pageNum) && pageNum >= 1 ? pageNum : 1;
 
   const db = getDb();
-  const [{ rows, total }, pendingCount] = await Promise.all([
-    listOrders(db, { status, from, to, q: q || undefined, page }),
-    listOrders(db, { status: "pending", page: 1 }).then((r) => r.total),
-  ]);
+  const filters = { status, from, to, q: q || undefined };
+  const [first1, pendingCount] = await Promise.all([listOrders(db, { ...filters, page }), countOrders(db, "pending")]);
+  const { total } = first1;
   const pages = Math.max(1, Math.ceil(total / ORDERS_PAGE_SIZE));
+  const curPage = Math.min(page, pages);
+  // página fuera de rango: se consulta la última página en vez de mostrar una tabla vacía
+  const { rows } = curPage === page ? first1 : await listOrders(db, { ...filters, page: curPage });
 
   const qs = (p: number) => {
     const u = new URLSearchParams();
@@ -136,10 +138,10 @@ export default async function PedidosPage({ searchParams }: { searchParams: Prom
       )}
       {total > 0 && (
         <nav className="flex items-center justify-between text-sm" aria-label="Paginación">
-          <span className="text-neutral-500">{total} pedidos · Página {Math.min(page, pages)} de {pages}</span>
+          <span className="text-neutral-500">{total} pedidos · Página {curPage} de {pages}</span>
           <div className="flex gap-2">
-            {page > 1 && <Link href={qs(page - 1)} className={buttonVariants({ variant: "outline", size: "sm" })}>Anterior</Link>}
-            {page < pages && <Link href={qs(page + 1)} className={buttonVariants({ variant: "outline", size: "sm" })}>Siguiente</Link>}
+            {curPage > 1 && <Link href={qs(curPage - 1)} className={buttonVariants({ variant: "outline", size: "sm" })}>Anterior</Link>}
+            {curPage < pages && <Link href={qs(curPage + 1)} className={buttonVariants({ variant: "outline", size: "sm" })}>Siguiente</Link>}
           </div>
         </nav>
       )}

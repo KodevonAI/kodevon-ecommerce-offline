@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { eq } from "drizzle-orm";
 import { makeTestDb, seedProduct } from "../helpers/db";
 import { createOrder, confirmOrder } from "@/server/orders";
-import { listOrders, getOrderDetail } from "@/server/orders-query";
+import { listOrders, getOrderDetail, countOrders } from "@/server/orders-query";
 import { orders, variants } from "@/db/schema";
 
 describe("orders-query", () => {
@@ -17,6 +17,17 @@ describe("orders-query", () => {
     expect((await listOrders(db, { q: "gómez" })).rows).toHaveLength(1);
     expect((await listOrders(db, { q: "3001112222" })).rows).toHaveLength(1);
     expect((await listOrders(db, {})).total).toBe(2);
+  });
+  it("countOrders cuenta por estado", async () => {
+    const db = await makeTestDb();
+    const { variantIds: [v] } = await seedProduct(db);
+    const a = await createOrder(db, { name: "Juan", phone: "3001112222", items: [{ variantId: v, qty: 1 }] });
+    await createOrder(db, { name: "Ana", phone: "3203334444", items: [{ variantId: v, qty: 1 }] });
+    if (a.ok) await confirmOrder(db, a.data.orderId);
+    expect(await countOrders(db, "pending")).toBe(1);
+    expect(await countOrders(db, "confirmed")).toBe(1);
+    expect(await countOrders(db, "cancelled")).toBe(0);
+    expect(await countOrders(db)).toBe(2);
   });
   it("detalle incluye stock actual por ítem", async () => {
     const db = await makeTestDb();
