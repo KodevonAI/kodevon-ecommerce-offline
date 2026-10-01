@@ -17,7 +17,8 @@ Copia `.env.example` a `.env.local`.
 | `BLOB_READ_WRITE_TOKEN` | Token de Vercel Blob para subir fotos. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Credenciales que crea `seed:admin`. |
 | `E2E_DATABASE_URL` | (opcional) BD **de prueba, distinta a la de desarrollo**, para el e2e con base de datos. Se trunca en cada corrida. |
-| `DEMO_MODE` | (opcional) `1` sirve la tienda con datos de ejemplo en memoria, sin base de datos. **Solo desarrollo**: se ignora si `NODE_ENV=production`. Nunca la definas en producción. |
+| `E2E_ALLOW_TRUNCATE` | (opcional) `1` desactiva la guarda de `global-setup.ts` (ver E2E). Úsalo solo si estás seguro de que la BD es descartable. |
+| `DEMO_MODE` | (opcional) `1` sirve la tienda con datos de ejemplo en memoria, sin base de datos. **Solo desarrollo**: `isDemoMode()` exige `DEMO_MODE=1` y `NODE_ENV!=="production"`, así que se ignora en producción (`next build`/`next start`). Aun así, nunca la definas en producción. |
 
 ## Comandos
 
@@ -37,7 +38,7 @@ DEMO_MODE=1 npm run dev  # tienda de demo sin base de datos
 `npm run e2e` tiene dos proyectos (instala el navegador una vez con `npx playwright install chromium`):
 
 - `demo`: tienda con `DEMO_MODE=1` en el puerto 3200 (home, filtros, producto → carrito → checkout → `/pedido/OFF-DEMO`, redirección del admin y 404). No necesita base de datos.
-- `db`: flujo completo cliente → admin confirma → stock baja (`tests/e2e/flow.spec.ts`), en el puerto 3201 con Postgres real. Solo corre si defines `E2E_DATABASE_URL`; sin ella se omite. `global-setup.ts` migra, vacía las tablas de negocio, crea el admin (`ADMIN_EMAIL`/`ADMIN_PASSWORD`, por defecto `admin-e2e@offline.co`) y siembra el producto `camiseta-e2e`.
+- `db`: flujo completo cliente → admin confirma → stock baja (`tests/e2e/flow.spec.ts`), en el puerto 3201 con Postgres real. Solo corre si defines `E2E_DATABASE_URL`; sin ella se omite. **El setup TRUNCA las tablas de negocio**, por eso `tests/e2e/db-guard.ts` se niega a continuar (antes de conectar) si la URL es igual a `DATABASE_URL`, o si el host no es local y el nombre de la BD no contiene `test` o `e2e`; `E2E_ALLOW_TRUNCATE=1` salta solo la segunda comprobación. `global-setup.ts` migra, vacía las tablas de negocio, crea el admin (`ADMIN_EMAIL`/`ADMIN_PASSWORD`, por defecto `admin-e2e@offline.co`) y siembra el producto `camiseta-e2e`.
 
 ```bash
 E2E_DATABASE_URL=postgres://… npm run e2e

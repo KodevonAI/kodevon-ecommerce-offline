@@ -32,6 +32,7 @@ export default defineConfig({
           reuseExistingServer: false,
           timeout: 120_000,
           env: {
+            DEMO_MODE: "", // nunca heredar DEMO_MODE del entorno
             NEXT_DIST_DIR: ".next-e2e-db",
             DATABASE_URL: E2E_DB,
             SESSION_SECRET: SECRET,

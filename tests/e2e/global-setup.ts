@@ -3,12 +3,14 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { sql } from "drizzle-orm";
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
+import { assertSafeE2eDatabase } from "./db-guard";
 import * as schema from "../../src/db/schema";
 
 // Solo actúa con E2E_DATABASE_URL (BD de PRUEBA, distinta a la de desarrollo). Sin ella no hace nada.
 export default async function globalSetup() {
   const url = process.env.E2E_DATABASE_URL;
   if (!url) return;
+  assertSafeE2eDatabase(url, process.env); // antes de conectar: el setup trunca tablas
   process.env.ADMIN_EMAIL ??= "admin-e2e@offline.co";
   process.env.ADMIN_PASSWORD ??= "e2e-password-123";
   const pool = new Pool({ connectionString: url });
