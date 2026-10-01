@@ -91,14 +91,14 @@ export async function topProducts(db: Db, r: Range, limit = 5) {
   const units = sql<number>`sum(${orderItems.qty})::bigint`;
   const revenue = sql<number>`sum(${orderItems.qty} * ${orderItems.unitPrice})::bigint`;
   const rows = await db
-    .select({ name: orderItems.productName, units, revenue })
+    .select({ name: orderItems.productName, colorName: orderItems.colorName, units, revenue })
     .from(orderItems)
     .innerJoin(orders, eq(orders.id, orderItems.orderId))
     .where(confirmedIn(r))
-    .groupBy(orderItems.productName)
-    .orderBy(desc(units), desc(revenue), asc(orderItems.productName))
+    .groupBy(orderItems.productName, orderItems.colorName)
+    .orderBy(desc(units), desc(revenue), asc(orderItems.productName), asc(orderItems.colorName))
     .limit(limit);
-  return rows.map((x) => ({ name: x.name, units: Number(x.units), revenue: Number(x.revenue) }));
+  return rows.map((x) => ({ name: x.colorName ? `${x.name} · ${x.colorName}` : x.name, units: Number(x.units), revenue: Number(x.revenue) }));
 }
 
 export async function lowStock(db: Db, threshold: number) {
@@ -108,7 +108,7 @@ export async function lowStock(db: Db, threshold: number) {
       productId: products.id,
       name: products.name,
       size: variants.size,
-      colorName: variants.colorName,
+      colorName: products.colorName,
       stock: variants.stock,
     })
     .from(variants)

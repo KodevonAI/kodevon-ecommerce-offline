@@ -22,7 +22,7 @@ export async function createOrder(
   return db.transaction(async (tx) => {
     const rows = await tx
       .select({
-        id: variants.id, size: variants.size, colorName: variants.colorName, stock: variants.stock,
+        id: variants.id, size: variants.size, colorName: products.colorName, stock: variants.stock,
         name: products.name, price: products.price, salePrice: products.salePrice, active: products.active,
       })
       .from(variants)
@@ -39,10 +39,11 @@ export async function createOrder(
     }
     if (issues.length) return { ok: false as const, error: { code: "invalid_items" as const, issues } };
 
-    const lines: MsgLine[] = [...merged].map(([variantId, qty]) => {
+    const priced = [...merged].map(([variantId, qty]) => {
       const v = byId.get(variantId)!;
-      return { productName: v.name, size: v.size, colorName: v.colorName, qty, unitPrice: v.salePrice ?? v.price };
+      return { variantId, productName: v.name, size: v.size, colorName: v.colorName, qty, unitPrice: v.salePrice ?? v.price };
     });
+    const lines: MsgLine[] = priced.map(({ productName, size, colorName, qty, unitPrice }) => ({ productName, size, colorName, qty, unitPrice }));
     const total = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
 
     const seq = await tx.execute(sql`select nextval('order_code_seq') as n`);
@@ -53,12 +54,14 @@ export async function createOrder(
     const [o] = await tx.insert(orders)
       .values({ code, customerName: input.name, customerPhone: input.phone, total })
       .returning({ id: orders.id });
-    await tx.insert(orderItems).values(
-      [...merged].map(([variantId, qty], idx) => ({
-        orderId: o.id, variantId, productName: lines[idx].productName, size: lines[idx].size,
-        colorName: lines[idx].colorName, unitPrice: lines[idx].unitPrice, qty,
-      })),
-    );
+    // filas con su propio variantId, insertadas en orden ascendente (mismo orden de bloqueo que deleteProduct)
+    const itemRows = [...priced]
+      .sort((a, b) => a.variantId - b.variantId)
+      .map((l) => ({
+        orderId: o.id, variantId: l.variantId, productName: l.productName, size: l.size,
+        colorName: l.colorName, unitPrice: l.unitPrice, qty: l.qty,
+      }));
+    await tx.insert(orderItems).values(itemRows);
     return { ok: true as const, data: { orderId: o.id, code, total, lines } };
   });
 }
@@ -78,7 +81,7 @@ export async function confirmOrder(db: Db, orderId: number): Promise<Result<{ co
 
     // bloqueo ordenado por id para evitar deadlocks entre confirmaciones concurrentes
     const locked = await tx
-      .select({ id: variants.id, stock: variants.stock, size: variants.size, color: variants.colorName, name: products.name })
+      .select({ id: variants.id, stock: variants.stock, size: variants.size, color: products.colorName, name: products.name })
       .from(variants)
       .innerJoin(products, eq(variants.productId, products.id))
       .where(inArray(variants.id, [...needed.keys()]))

@@ -85,8 +85,17 @@ describe("stats", () => {
     const b = await seedProduct(db, { name: "B", price: 90000, variants: [{ size: "M", color: "Negro", stock: 20 }] });
     await sale(db, a.variantIds[0], 5); await sale(db, b.variantIds[0], 1);
     const t = await topProducts(db, wide, 5);
-    expect(t.map((x) => x.name)).toEqual(["A", "B"]);
-    expect(t[0]).toEqual({ name: "A", units: 5, revenue: 50000 });
+    expect(t.map((x) => x.name)).toEqual(["A · Negro", "B · Negro"]);
+    expect(t[0]).toEqual({ name: "A · Negro", units: 5, revenue: 50000 });
+  });
+
+  it("topProducts separa filas por color del mismo nombre", async () => {
+    const db = await makeTestDb();
+    const r = await seedProduct(db, { name: "A", color: "Rojo", price: 10000, variants: [{ size: "M", stock: 20 }] });
+    const n = await seedProduct(db, { name: "A", color: "Negro", price: 10000, variants: [{ size: "M", stock: 20 }] });
+    await sale(db, r.variantIds[0], 3); await sale(db, n.variantIds[0], 1);
+    const t = await topProducts(db, wide, 5);
+    expect(t).toEqual([{ name: "A · Rojo", units: 3, revenue: 30000 }, { name: "A · Negro", units: 1, revenue: 10000 }]);
   });
 
   it("topProducts agrupa por nombre entre variantes y respeta limit", async () => {
@@ -97,7 +106,7 @@ describe("stats", () => {
     await sale(db, a.variantIds[0], 2); await sale(db, a.variantIds[1], 2);
     await sale(db, b.variantIds[0], 3); await sale(db, c.variantIds[0], 1);
     const t = await topProducts(db, wide, 2);
-    expect(t).toEqual([{ name: "A", units: 4, revenue: 40000 }, { name: "B", units: 3, revenue: 30000 }]);
+    expect(t).toEqual([{ name: "A · Negro", units: 4, revenue: 40000 }, { name: "B · Negro", units: 3, revenue: 30000 }]);
   });
 
   it("lowStock excluye inactivos y respeta el umbral", async () => {

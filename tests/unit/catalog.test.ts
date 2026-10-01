@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { makeTestDb, seedProduct } from "../helpers/db";
-import { listProducts, getProductBySlug, getCartLines, redactInactiveLines } from "@/server/catalog";
+import { listProducts, getProductBySlug, getCartLines, getFilterOptions, redactInactiveLines } from "@/server/catalog";
 import { slugify } from "@/lib/slug";
 import { categories, products } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -77,5 +77,52 @@ describe("getProductBySlug / getCartLines", () => {
     const { variantIds } = await seedProduct(db, { price: 100, active: false, variants: [{ size: "M", color: "Negro", stock: 4 }] });
     const [l] = redactInactiveLines(await getCartLines(db, variantIds));
     expect(l).toEqual({ variantId: variantIds[0], active: false, productName: expect.any(String), colorName: "Negro", size: "M", slug: "", price: 0, stock: 0, image: null });
+  });
+});
+
+describe("colores como productos", () => {
+  it("tarjetas: los demás colores del mismo modelo, solo activos y solo del mismo modelo", async () => {
+    const db = await makeTestDb();
+    const a = await seedProduct(db, { name: "Blusa", color: "Rojo", colorHex: "#ff0000", modelId: "m1" });
+    await seedProduct(db, { name: "Blusa", color: "Negro", colorHex: "#000000", modelId: "m1" });
+    await seedProduct(db, { name: "Blusa", color: "Azul", colorHex: "#1976d2", modelId: "m1", active: false }); // archivado
+    await seedProduct(db, { name: "Otra", color: "Verde", colorHex: "#388e3c", modelId: "m2" });
+    const cards = await listProducts(db, {});
+    const rojo = cards.find((c) => c.colorName === "Rojo")!;
+    expect(rojo.colors.map((c) => c.colorName)).toEqual(["Negro"]);
+    expect(cards.find((c) => c.name === "Otra")!.colors).toEqual([]);
+    expect(cards).toHaveLength(3); // el archivado no se lista
+    expect(a.productId).toBeGreaterThan(0);
+  });
+
+  it("producto: siblings incluye el actual y excluye archivados y otros modelos; variantes sin color", async () => {
+    const db = await makeTestDb();
+    const r = await seedProduct(db, { name: "Blusa", color: "Rojo", colorHex: "#ff0000", modelId: "m1", variants: [{ size: "S", stock: 2 }] });
+    await seedProduct(db, { name: "Blusa", color: "Negro", colorHex: "#000000", modelId: "m1", variants: [{ size: "S", stock: 0 }] });
+    await seedProduct(db, { name: "Blusa", color: "Azul", colorHex: "#1976d2", modelId: "m1", active: false });
+    await seedProduct(db, { name: "Otra", color: "Verde", modelId: "m2" });
+    const [p] = await db.select().from(products).where(eq(products.id, r.productId));
+    const d = await getProductBySlug(db, p.slug);
+    expect(d!.colorName).toBe("Rojo");
+    expect(d!.siblings.map((s) => [s.colorName, s.inStock])).toEqual([["Rojo", true], ["Negro", false]]);
+    expect(d!.variants[0]).toEqual({ id: expect.any(Number), size: "S", stock: 2 });
+    expect(d!.variants[0]).not.toHaveProperty("colorName");
+  });
+
+  it("filtro por color usa el color del producto y las opciones salen de productos activos", async () => {
+    const db = await makeTestDb();
+    await seedProduct(db, { name: "A", color: "Rojo", colorHex: "#ff0000" });
+    await seedProduct(db, { name: "B", color: "Negro", colorHex: "#000000" });
+    await seedProduct(db, { name: "C", color: "Azul", colorHex: "#1976d2", active: false });
+    expect((await listProducts(db, { color: "Rojo" })).map((p) => p.name)).toEqual(["A"]);
+    const o = await getFilterOptions(db);
+    expect(o.colors.map((c) => c.name)).toEqual(["Negro", "Rojo"]);
+  });
+
+  it("líneas de carrito toman el color del producto", async () => {
+    const db = await makeTestDb();
+    const { variantIds } = await seedProduct(db, { color: "Vino", colorHex: "#7b1e3a" });
+    const [l] = await getCartLines(db, variantIds);
+    expect(l.colorName).toBe("Vino");
   });
 });

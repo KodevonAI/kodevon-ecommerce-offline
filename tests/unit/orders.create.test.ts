@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { makeTestDb, seedProduct } from "../helpers/db";
 import { createOrder } from "@/server/orders";
 import { orders, orderItems, variants } from "@/db/schema";
@@ -21,6 +21,31 @@ describe("createOrder", () => {
     expect(items[0]).toMatchObject({ unitPrice: 80000, qty: 2, size: "M", colorName: "Negro" });
     const [v] = await db.select().from(variants).where(eq(variants.id, variantIds[0]));
     expect(v.stock).toBe(5);
+  });
+
+  it("el snapshot guarda el color del producto", async () => {
+    const db = await makeTestDb();
+    const { variantIds } = await seedProduct(db, { color: "Vino", colorHex: "#7b1e3a" });
+    const r = await createOrder(db, { ...who, items: [{ variantId: variantIds[0], qty: 1 }] });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const items = await db.select().from(orderItems).where(eq(orderItems.orderId, r.data.orderId));
+    expect(items[0].colorName).toBe("Vino");
+    expect(r.data.lines[0].colorName).toBe("Vino");
+  });
+
+  it("inserta order_items en orden ascendente de variantId y devuelve lines en orden de la petición", async () => {
+    const db = await makeTestDb();
+    const a = await seedProduct(db, { name: "Uno", variants: [{ size: "M", stock: 5 }] });
+    const b = await seedProduct(db, { name: "Dos", variants: [{ size: "M", stock: 5 }] });
+    const lo = a.variantIds[0], hi = b.variantIds[0];
+    expect(hi).toBeGreaterThan(lo);
+    const r = await createOrder(db, { ...who, items: [{ variantId: hi, qty: 1 }, { variantId: lo, qty: 1 }] });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const items = await db.select().from(orderItems).where(eq(orderItems.orderId, r.data.orderId)).orderBy(asc(orderItems.id));
+    expect(items.map((i) => i.variantId)).toEqual([lo, hi]);
+    expect(r.data.lines.map((l) => l.productName)).toEqual(["Dos", "Uno"]);
   });
 
   it("códigos consecutivos", async () => {
