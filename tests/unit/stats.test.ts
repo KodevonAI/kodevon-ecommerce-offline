@@ -98,6 +98,13 @@ describe("stats", () => {
     expect(t).toEqual([{ name: "A · Rojo", units: 3, revenue: 30000 }, { name: "A · Negro", units: 1, revenue: 10000 }]);
   });
 
+  it("topProducts sin color: la etiqueta es solo el nombre", async () => {
+    const db = await makeTestDb();
+    const a = await seedProduct(db, { name: "Sin color", color: "", price: 10000, variants: [{ size: "M", stock: 20 }] });
+    await sale(db, a.variantIds[0], 2);
+    expect(await topProducts(db, wide, 5)).toEqual([{ name: "Sin color", units: 2, revenue: 20000 }]);
+  });
+
   it("topProducts agrupa por nombre entre variantes y respeta limit", async () => {
     const db = await makeTestDb();
     const a = await seedProduct(db, { name: "A", price: 10000, variants: [{ size: "M", color: "Negro", stock: 20 }, { size: "L", color: "Negro", stock: 20 }] });

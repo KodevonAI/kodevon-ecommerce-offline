@@ -98,11 +98,15 @@ export async function getFilterOptions(db: Db) {
     .from(variants).innerJoin(products, eq(products.id, variants.productId))
     .where(eq(products.active, true));
   const sizes = [...new Set(sizeRows.map((v) => v.size))].sort();
-  const colors = await db
+  const colorRows = await db
     .selectDistinct({ name: products.colorName, hex: products.colorHex })
     .from(products)
     .where(and(eq(products.active, true), sql`${products.colorName} <> ''`))
-    .orderBy(asc(products.colorName));
+    .orderBy(asc(products.colorName), asc(products.colorHex));
+  // Un color por nombre (el primer hex), ordenado con criterio español.
+  const byName = new Map<string, { name: string; hex: string }>();
+  for (const c of colorRows) if (!byName.has(c.name)) byName.set(c.name, c);
+  const colors = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
   return { categories: cats, sizes, colors };
 }
 

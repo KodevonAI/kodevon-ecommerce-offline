@@ -119,6 +119,19 @@ describe("colores como productos", () => {
     expect(o.colors.map((c) => c.name)).toEqual(["Negro", "Rojo"]);
   });
 
+  it("opciones de color: una entrada por nombre (primer hex) y orden alfabético en español", async () => {
+    const db = await makeTestDb();
+    await seedProduct(db, { name: "A", color: "Verde", colorHex: "#00ff00" });
+    await seedProduct(db, { name: "B", color: "Verde", colorHex: "#00aa00" });
+    await seedProduct(db, { name: "C", color: "Ámbar", colorHex: "#ffbf00" });
+    await seedProduct(db, { name: "D", color: "azul", colorHex: "#1976d2" });
+    await seedProduct(db, { name: "E", color: "Zafiro", colorHex: "#0f52ba" });
+    const o = await getFilterOptions(db);
+    expect(o.colors.map((c) => c.name)).toEqual(["Ámbar", "azul", "Verde", "Zafiro"]);
+    expect(o.colors.filter((c) => c.name === "Verde")).toHaveLength(1);
+    expect(["#00ff00", "#00aa00"]).toContain(o.colors.find((c) => c.name === "Verde")!.hex);
+  });
+
   it("líneas de carrito toman el color del producto", async () => {
     const db = await makeTestDb();
     const { variantIds } = await seedProduct(db, { color: "Vino", colorHex: "#7b1e3a" });
