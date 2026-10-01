@@ -27,13 +27,16 @@ export function parseStored(raw: string | null): CartItem[] {
   try {
     const v: unknown = JSON.parse(raw);
     if (!Array.isArray(v)) return [];
-    return v
-      .filter(
-        (i): i is CartItem =>
-          Boolean(i) && typeof i === "object" &&
-          Number.isInteger(i.variantId) && i.variantId > 0 && Number.isInteger(i.qty) && i.qty > 0,
-      )
-      .map((i) => ({ variantId: i.variantId, qty: i.qty }));
+    const merged = new Map<number, number>();
+    for (const i of v) {
+      if (
+        Boolean(i) && typeof i === "object" &&
+        Number.isInteger(i.variantId) && i.variantId > 0 && Number.isInteger(i.qty) && i.qty > 0
+      ) {
+        merged.set(i.variantId, (merged.get(i.variantId) ?? 0) + i.qty);
+      }
+    }
+    return [...merged].map(([variantId, qty]) => ({ variantId, qty: Math.min(qty, MAX_QTY_PER_LINE) }));
   } catch {
     return [];
   }

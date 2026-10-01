@@ -18,4 +18,16 @@ describe("cart", () => {
     expect(parseStored("{no json")).toEqual([]);
     expect(parseStored('[{"variantId":1,"qty":2},{"variantId":"x","qty":-1},null]')).toEqual([{ variantId: 1, qty: 2 }]);
   });
+  it("parseStored topa qty en 20 y fusiona duplicados", () => {
+    expect(parseStored('[{"variantId":1,"qty":99}]')).toEqual([{ variantId: 1, qty: 20 }]);
+    expect(parseStored('[{"variantId":1,"qty":2},{"variantId":2,"qty":1},{"variantId":1,"qty":3}]')).toEqual([
+      { variantId: 1, qty: 5 },
+      { variantId: 2, qty: 1 },
+    ]);
+    expect(parseStored('[{"variantId":1,"qty":15},{"variantId":1,"qty":15}]')).toEqual([{ variantId: 1, qty: 20 }]);
+  });
+  it("parseStored descarta no-arrays, qty <= 0 y no enteros", () => {
+    expect(parseStored('{"variantId":1,"qty":1}')).toEqual([]);
+    expect(parseStored('[{"variantId":1,"qty":0},{"variantId":2,"qty":-3},{"variantId":3,"qty":1.5},{"variantId":0,"qty":1}]')).toEqual([]);
+  });
 });
