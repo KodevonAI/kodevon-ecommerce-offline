@@ -44,7 +44,25 @@ DEMO_MODE=1 npm run dev  # tienda de demo sin base de datos
 E2E_DATABASE_URL=postgres://… npm run e2e
 ```
 
+El flujo `db` cubre: pedido (el cliente elige la talla) → confirmación → stock en el editor del producto; alta de un producto con color desde `/admin/productos/nuevo` y su eliminación; y el botón "Archivar" en un producto con pedidos.
+
 > Nota: el proyecto `db` no se ha ejecutado todavía (se escribió sin acceso a Postgres). Córrelo una vez contra una BD de prueba antes de confiar en él.
+
+## Cargar productos
+
+Un producto es **un color**: nombre, descripción, precio, color, fotos y tallas. En `/admin/productos/nuevo`:
+
+1. Escribe el nombre **sin el color** y elige el color con el selector (o el gotero, en Chrome/Edge de escritorio). El nombre del color se propone solo (el más cercano de la paleta) y puedes corregirlo.
+2. Sube las fotos: se suben antes de guardar y se guardan junto con el producto.
+3. Elige las tallas y su stock inicial.
+4. Pulsa **Guardar**.
+
+Para el mismo modelo en otro color usa **Agregar otro color** (en la página del producto): crea un producto nuevo con los datos copiados, y en la tienda los colores del modelo aparecen como círculos que llevan de uno a otro. El stock de tallas ya guardadas se ajusta con **+/−** (queda registrado como movimiento manual); las tallas nuevas o quitadas se aplican al guardar.
+
+### Eliminar vs archivar
+
+- **Eliminar**: solo si el producto nunca tuvo pedidos (los pedidos cancelados también cuentan). Borra el producto, sus fotos y su stock.
+- **Archivar / Reactivar**: si tiene pedidos. El producto deja de verse en la tienda pero se conserva el historial; se puede reactivar.
 
 ## Despliegue en Vercel
 
@@ -63,6 +81,21 @@ E2E_DATABASE_URL=postgres://… npm run e2e
    **Ojo:** si los ejecutas sin `DATABASE_URL` en el comando, usan la de `.env.local` (tu BD de desarrollo) y migran esa.
 6. Despliega.
 7. Entra a `/admin/ajustes` y configura el número de WhatsApp. Hasta entonces la tienda no acepta pedidos y el dashboard muestra un aviso.
+
+### Migración 0002 (color como producto)
+
+Mueve el color de las variantes al producto. Es aditiva: el código desplegado antes sigue funcionando con la BD migrada (`model_id` tiene valor por defecto en la BD, así que los inserts viejos funcionan).
+
+1. **Antes de migrar**, en la consola SQL de Neon (solo lectura); debe devolver **0 filas** (ningún producto con más de un color en sus variantes):
+
+   ```sql
+   select p.name from products p
+   where (select count(distinct v.color_name) from variants v where v.product_id = p.id) > 1;
+   ```
+
+2. Migra: `DATABASE_URL="<url>" npm run db:migrate`. Ojo: entre migrar y desplegar, el admin viejo que agregue una talla repetida en un segundo color la ignora en silencio; **despliega justo después**.
+3. Sube a `main` para que Vercel despliegue.
+4. Las columnas antiguas `variants.color_name` y `variants.color_hex` quedan en desuso; su limpieza va en una migración posterior.
 
 ## Notas conocidas
 

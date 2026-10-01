@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 // Requiere Postgres real: se salta si no hay E2E_DATABASE_URL (ver global-setup.ts y playwright.config.ts).
 test.skip(!process.env.E2E_DATABASE_URL, "E2E_DATABASE_URL no definida: flujo con base de datos omitido.");
@@ -17,7 +17,6 @@ test("cliente pide, admin confirma y el stock baja", async ({ page }) => {
   });
   // Cliente
   await page.goto("/producto/camiseta-e2e");
-  await page.getByRole("button", { name: "Negro", exact: true }).click();
   await page.getByRole("button", { name: "M", exact: true }).click();
   await page.getByRole("button", { name: /agregar al carrito/i }).click();
   await page.goto("/checkout");
@@ -41,11 +40,60 @@ test("cliente pide, admin confirma y el stock baja", async ({ page }) => {
   await page.getByRole("dialog").getByRole("button", { name: /confirmar/i }).click();
   await expect(page.getByText(/confirmado/i).first()).toBeVisible();
 
-  // Stock: 5 - 1 = 4. VariantPicker solo muestra "Quedan N" con N <= 3; en admin VariantGrid (StockCell)
-  // pinta el stock como texto de una celda de tabla (no un input), así que se busca la celda "4".
+  // Stock: 5 - 1 = 4. En el editor de producto, las tallas guardadas muestran el stock como texto de la fila
+  // (con +/− para ajustarlo), no como input.
   await page.goto("/admin/productos");
   await page.getByRole("link", { name: /camiseta e2e/i }).first().click();
-  await expect(page.getByRole("row", { name: /negro/i }).getByRole("cell", { name: /^4/ }).first()).toBeVisible();
+  await expect(page.getByRole("row", { name: /^M\s*4(\s|$)/ })).toBeVisible();
+});
+
+async function adminLogin(page: Page) {
+  await page.goto("/admin/login");
+  await page.getByLabel("Email").fill(adminEmail);
+  await page.getByLabel("Contraseña").fill(adminPassword);
+  await page.getByRole("button", { name: /entrar/i }).click();
+  await page.waitForURL(/\/admin(?!\/login)/);
+}
+
+test("admin crea un producto con color y talla, aparece en la tienda y lo elimina", async ({ page }) => {
+  await adminLogin(page);
+  await page.goto("/admin/productos/nuevo");
+  await page.getByLabel("Nombre", { exact: true }).fill("Chaqueta E2E Alta");
+  await page.getByLabel("Precio (COP)").fill("120000");
+
+  // Color por el selector nativo: el nombre se propone con el color más cercano de la paleta.
+  await page.locator("input[type=color]").fill("#ff0000");
+  await expect(page.getByLabel("Nombre del color")).toHaveValue("Rojo");
+
+  // Talla M con stock inicial 2 (sin fotos).
+  await page.getByRole("group", { name: "Tallas frecuentes" }).getByRole("button", { name: "M", exact: true }).click();
+  await page.getByLabel("Stock inicial talla M").fill("2");
+  await page.getByRole("button", { name: "Guardar", exact: true }).click();
+
+  await expect(page).toHaveURL(/\/admin\/productos\/\d+\?creado=1/);
+  await expect(page.getByText("Producto creado").first()).toBeVisible();
+  const productUrl = page.url();
+
+  await page.goto("/tienda");
+  await expect(page.getByText("Chaqueta E2E Alta").first()).toBeVisible();
+
+  // Sin pedidos: se puede eliminar desde su página.
+  await page.goto(productUrl);
+  await page.getByRole("button", { name: "Eliminar", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /sí, eliminar/i }).click();
+  await page.waitForURL(/\/admin\/productos$/);
+
+  await page.goto("/tienda");
+  await expect(page.getByText("Chaqueta E2E Alta")).toHaveCount(0);
+});
+
+test("un producto con pedidos se archiva en vez de eliminarse", async ({ page }) => {
+  // camiseta-e2e ya tiene el pedido del primer test (confirmado): el botón es "Archivar", no "Eliminar".
+  await adminLogin(page);
+  await page.goto("/admin/productos");
+  await page.getByRole("link", { name: /camiseta e2e/i }).first().click();
+  await expect(page.getByRole("button", { name: "Archivar", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Eliminar", exact: true })).toHaveCount(0);
 });
 
 test("admin sin sesión es redirigido al login", async ({ page }) => {

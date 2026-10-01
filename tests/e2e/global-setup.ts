@@ -30,9 +30,9 @@ export default async function globalSetup() {
 
     const [p] = await db.insert(schema.products).values({
       name: "Camiseta E2E", slug: "camiseta-e2e", price: 89900, active: true,
-      modelId: "m-e2e", colorName: "Negro", colorHex: "#151515",
+      modelId: "m-e2e", colorName: "Negro", colorHex: "#000000",
     }).returning();
-    await db.insert(schema.variants).values({ productId: p.id, size: "M", colorName: "Negro", colorHex: "#151515", stock: 5 });
+    await db.insert(schema.variants).values({ productId: p.id, size: "M", stock: 5 });
   } finally {
     await pool.end();
   }
