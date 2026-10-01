@@ -2,12 +2,14 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { sql } from "drizzle-orm";
 import { Pool } from "pg";
+import { config as loadEnv } from "dotenv";
 import bcrypt from "bcryptjs";
 import { assertSafeE2eDatabase } from "./db-guard";
 import * as schema from "../../src/db/schema";
 
 // Solo actúa con E2E_DATABASE_URL (BD de PRUEBA, distinta a la de desarrollo). Sin ella no hace nada.
 export default async function globalSetup() {
+  loadEnv({ path: ".env.local" }); // solo lectura: no pisa variables ya definidas; deja visible DATABASE_URL a la guarda
   const url = process.env.E2E_DATABASE_URL;
   if (!url) return;
   assertSafeE2eDatabase(url, process.env); // antes de conectar: el setup trunca tablas
