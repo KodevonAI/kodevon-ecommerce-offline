@@ -4,7 +4,7 @@ import { getFilterOptions, getProductBySlug, listProducts, type CatalogFilters }
 import { getSettings } from "./settings";
 
 /** Demo sin BD, solo en desarrollo. Imposible en producción por el guard de NODE_ENV. */
-const isDemoMode = () => process.env.DEMO_MODE === "1" && process.env.NODE_ENV !== "production";
+export const isDemoMode = () => process.env.DEMO_MODE === "1" && process.env.NODE_ENV !== "production";
 
 // getDb() se llama DENTRO de la función cacheada: el build no abre conexiones.
 export const cachedList = async (f: CatalogFilters) => {

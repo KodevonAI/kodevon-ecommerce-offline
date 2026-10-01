@@ -88,3 +88,5 @@ export async function getCartLines(db: Db, ids: number[]) {
     .from(variants).innerJoin(products, eq(products.id, variants.productId))
     .where(inArray(variants.id, ids));
 }
+
+export type CartLine = Awaited<ReturnType<typeof getCartLines>>[number];

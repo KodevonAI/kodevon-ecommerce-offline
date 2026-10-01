@@ -1,7 +1,8 @@
 // DEMO SOLO PARA DESARROLLO: catálogo en memoria para ver la tienda sin base de datos.
 // Se activa con DEMO_MODE=1 y NODE_ENV !== "production" (ver isDemoMode en cached.ts).
 // Archivo autocontenido: para quitar la demo, borrar este archivo y las ramas `isDemoMode()` de cached.ts.
-import type { CatalogFilters, ProductCard, getProductBySlug } from "./catalog";
+import type { CartLine, CatalogFilters, ProductCard, getProductBySlug } from "./catalog";
+import type { PublicOrder } from "./orders-public";
 
 type ProductDetail = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
 type DemoVariant = ProductDetail["variants"][number];
@@ -148,3 +149,33 @@ export function demoFilterOptions() {
 }
 
 export const DEMO_SETTINGS = { whatsappNumber: "3000000000", storeName: "OFFLINE", lowStockThreshold: 3 };
+
+/** Líneas de carrito para ids de variante (misma forma que getCartLines). Los ids desconocidos se omiten. */
+export function demoCartLines(ids: number[]): CartLine[] {
+  const want = new Set(ids);
+  const out: CartLine[] = [];
+  for (const p of PRODUCTS) {
+    for (const v of p.variants) {
+      if (!want.has(v.id)) continue;
+      out.push({
+        variantId: v.id, productName: p.name, slug: p.slug, size: v.size, colorName: v.colorName,
+        price: effective(p), stock: v.stock, image: p.images[0] ?? null, active: true,
+      });
+    }
+  }
+  return out;
+}
+
+/** Pedido fijo para /pedido/OFF-DEMO (no se guarda nada). */
+export function demoOrder(): PublicOrder {
+  const p = PRODUCTS[0];
+  const q = PRODUCTS[1];
+  const lines = [
+    { productName: p.name, size: "M", colorName: "Negro", qty: 2, unitPrice: effective(p) },
+    { productName: q.name, size: "S", colorName: "Blanco", qty: 1, unitPrice: effective(q) },
+  ];
+  return {
+    code: "OFF-DEMO", customerName: "Cliente Demo", maskedPhone: "••••••4567", status: "pending",
+    total: lines.reduce((t, l) => t + l.unitPrice * l.qty, 0), lines,
+  };
+}

@@ -8,6 +8,8 @@ const STORAGE_KEY = "offline_cart";
 type CartContextValue = {
   items: CartItem[];
   count: number;
+  /** false hasta hidratar desde localStorage (evita mostrar "carrito vacío" por error). */
+  ready: boolean;
   add: (item: CartItem, maxStock: number) => void;
   setQty: (variantId: number, qty: number, maxStock: number) => void;
   remove: (variantId: number) => void;
@@ -34,9 +36,11 @@ function writeStorage(items: CartItem[]) {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [ready, setReady] = useState(false);
   // Hidrata en el cliente (evita mismatch con el HTML del servidor) y escucha otras pestañas.
   useEffect(() => {
     setItems(readStorage());
+    setReady(true);
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY || e.key === null) setItems(parseStored(e.key === null ? null : e.newValue));
     };
@@ -63,8 +67,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const clear = useCallback(() => update(() => []), [update]);
 
   const value = useMemo<CartContextValue>(
-    () => ({ items, count: items.reduce((n, i) => n + i.qty, 0), add, setQty, remove, clear }),
-    [items, add, setQty, remove, clear],
+    () => ({ items, ready, count: items.reduce((n, i) => n + i.qty, 0), add, setQty, remove, clear }),
+    [items, ready, add, setQty, remove, clear],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
