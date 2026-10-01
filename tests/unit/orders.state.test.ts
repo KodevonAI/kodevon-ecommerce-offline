@@ -34,10 +34,12 @@ describe("confirmOrder", () => {
     const b = await seedProduct(db, { name: "Hoodie", variants: [{ size: "L", color: "Gris", stock: 2 }] });
     const r1 = await createOrder(db, { ...who, items: [{ variantId: a.variantIds[0], qty: 3 }, { variantId: b.variantIds[0], qty: 2 }] });
     if (!r1.ok) throw new Error("setup");
-    await adjustStock(db, b.variantIds[0], -1); // ahora b tiene 1
+    expect(await adjustStock(db, b.variantIds[0], -1)).toEqual({ ok: true, data: { stock: 1 } }); // ahora b tiene 1
     const r = await confirmOrder(db, r1.data.orderId);
     expect(r.ok).toBe(false);
-    if (!r.ok && r.error.code === "insufficient_stock") {
+    if (r.ok) throw new Error("debía fallar");
+    expect(r.error.code).toBe("insufficient_stock");
+    if (r.error.code === "insufficient_stock") {
       expect(r.error.lines).toEqual([expect.objectContaining({ variantId: b.variantIds[0], needed: 2, available: 1 })]);
     }
     expect(await stockOf(db, a.variantIds[0])).toBe(5);
@@ -103,6 +105,29 @@ describe("cancelOrder", () => {
     expect(await stockOf(db, v)).toBe(5);
     const mv = await db.select().from(stockMovements).where(eq(stockMovements.reason, "order_cancelled"));
     expect(mv).toMatchObject([{ delta: 2, orderId: id }]);
+  });
+
+  it("confirmed con una variante borrada: cancela y repone solo las demás", async () => {
+    const db = await makeTestDb();
+    const { variantIds: [v1, v2] } = await seedProduct(db, { variants: [{ size: "M", color: "Negro", stock: 5 }, { size: "L", color: "Negro", stock: 5 }] });
+    const r0 = await createOrder(db, { ...who, items: [{ variantId: v1, qty: 2 }, { variantId: v2, qty: 1 }] });
+    if (!r0.ok) throw new Error("setup");
+    await confirmOrder(db, r0.data.orderId);
+    await db.delete(variants).where(eq(variants.id, v1));
+    const r = await cancelOrder(db, r0.data.orderId);
+    expect(r).toMatchObject({ ok: true, data: { restocked: true } });
+    expect(await stockOf(db, v2)).toBe(5);
+    const [o] = await db.select().from(orders).where(eq(orders.id, r0.data.orderId));
+    expect(o.status).toBe("cancelled");
+  });
+
+  it("confirmed con todas las variantes borradas: cancela con restocked=false", async () => {
+    const db = await makeTestDb();
+    const { variantIds: [v] } = await seedProduct(db, { variants: [{ size: "M", color: "Negro", stock: 5 }] });
+    const id = await pending(db, v, 1);
+    await confirmOrder(db, id);
+    await db.delete(variants).where(eq(variants.id, v));
+    expect(await cancelOrder(db, id)).toMatchObject({ ok: true, data: { restocked: false } });
   });
 
   it("cancelled no se puede cancelar ni confirmar; no devuelve stock dos veces", async () => {

@@ -112,15 +112,16 @@ export async function cancelOrder(db: Db, orderId: number): Promise<Result<{ cod
       const back = new Map<number, number>();
       for (const i of items) if (i.variantId !== null) back.set(i.variantId, (back.get(i.variantId) ?? 0) + i.qty);
       const ids = [...back.keys()].sort((a, b) => a - b);
-      if (ids.length) {
-        await tx.select({ id: variants.id }).from(variants).where(inArray(variants.id, ids)).orderBy(asc(variants.id)).for("update");
-      }
-      for (const variantId of ids) {
+      // solo las variantes que siguen existiendo tras el bloqueo (una borrada en paralelo no debe dar error de FK)
+      const locked = ids.length
+        ? await tx.select({ id: variants.id }).from(variants).where(inArray(variants.id, ids)).orderBy(asc(variants.id)).for("update")
+        : [];
+      for (const { id: variantId } of locked) {
         const qty = back.get(variantId)!;
         await tx.update(variants).set({ stock: sql`${variants.stock} + ${qty}` }).where(eq(variants.id, variantId));
         await tx.insert(stockMovements).values({ variantId, delta: qty, reason: "order_cancelled", orderId });
       }
-      restocked = ids.length > 0;
+      restocked = locked.length > 0;
     }
     await tx.update(orders).set({ status: "cancelled", cancelledAt: new Date() }).where(eq(orders.id, orderId));
     return { ok: true as const, data: { code: o.code, restocked } };
