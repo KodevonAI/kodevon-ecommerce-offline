@@ -44,7 +44,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
             {pct > 0 && !soldOut && <span className="bg-ink px-2 py-0.5 text-xs font-medium tabular-nums text-paper">−{pct}%</span>}
           </div>
           <div className="mt-8">
-            <VariantPicker variants={p.variants} colorName={p.colorName} siblings={p.siblings} currentSlug={p.slug} initialSize={talla} />
+            <VariantPicker key={p.slug} variants={p.variants} colorName={p.colorName} siblings={p.siblings} currentSlug={p.slug} initialSize={talla} />
           </div>
           {p.description && (
             <div className="mt-8 border-t border-line pt-6">

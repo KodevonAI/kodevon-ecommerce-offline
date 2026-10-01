@@ -78,10 +78,20 @@ test("cambiar de color cambia de producto y conserva la talla", async ({ page })
 
 test("el catálogo muestra una tarjeta por color", async ({ page }) => {
   await page.goto("/tienda");
-  await expect(page.getByRole("link", { name: /Camiseta Pausa/ })).toHaveCount(2);
+  await expect(page.getByRole("link", { name: /^Camiseta Pausa/ })).toHaveCount(2);
   await page.goto("/tienda?color=Hueso");
   await expect(page.locator('a[href="/producto/camiseta-pausa-hueso"]')).toHaveCount(1);
   await expect(page.locator('a[href="/producto/camiseta-pausa-negro"]')).toHaveCount(0);
+});
+
+test("producto agotado en un color sigue mostrando los otros colores", async ({ page }) => {
+  await page.goto("/producto/camiseta-fuera-de-linea-hueso");
+  await expect(page.getByRole("button", { name: "Agotado", exact: true })).toBeDisabled();
+  await expect(page.getByText("Disponible en otro color")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Hueso (agotado)" })).toHaveAttribute("aria-current", "true");
+  await page.getByRole("button", { name: "Negro", exact: true }).click();
+  await expect(page).toHaveURL(/\/producto\/camiseta-fuera-de-linea-negro/);
+  await expect(page.getByRole("button", { name: /agregar al carrito|elige una talla/i })).toBeVisible();
 });
 
 test("/admin/pedidos sin sesión redirige al login", async ({ page }) => {

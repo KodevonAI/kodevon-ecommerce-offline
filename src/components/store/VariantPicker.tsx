@@ -44,7 +44,7 @@ export function VariantPicker({
 
   function goToColor(slug: string) {
     if (slug === currentSlug) return;
-    router.push(`/producto/${slug}${size ? `?talla=${encodeURIComponent(size)}` : ""}`);
+    router.push(`/producto/${slug}${size ? `?talla=${encodeURIComponent(size)}` : ""}`, { scroll: false });
   }
 
   function onAdd() {
@@ -52,17 +52,6 @@ export function VariantPicker({
     add({ variantId: variant.id, qty: q }, variant.stock);
     setAdded(q);
     setQty(1);
-  }
-
-  if (soldOut) {
-    return (
-      <div className="flex flex-col gap-3">
-        <button type="button" disabled className="h-13 w-full cursor-not-allowed rounded-full bg-line text-base font-medium text-mute">
-          Agotado
-        </button>
-        <p className="text-sm text-mute">Esta prenda no tiene unidades por ahora.</p>
-      </div>
-    );
   }
 
   return (
@@ -81,7 +70,6 @@ export function VariantPicker({
                   key={c.slug}
                   type="button"
                   onClick={() => goToColor(c.slug)}
-                  aria-pressed={current}
                   aria-current={current ? "true" : undefined}
                   aria-label={!c.inStock ? `${c.colorName} (agotado)` : c.colorName}
                   title={c.colorName}
@@ -101,6 +89,16 @@ export function VariantPicker({
         </p>
       )}
 
+      {soldOut ? (
+        <div className="flex flex-col gap-3">
+          <button type="button" disabled className="h-13 w-full cursor-not-allowed rounded-full bg-line text-base font-medium text-mute">
+            Agotado
+          </button>
+          <p className="text-sm text-mute">Esta prenda no tiene unidades por ahora.</p>
+          {siblings.some((x) => x.inStock) && <p className="text-sm">Disponible en otro color</p>}
+        </div>
+      ) : (
+        <>
       <fieldset>
         <legend className="mb-3 flex w-full justify-between text-sm">
           <span className="font-medium">Talla</span>
@@ -157,6 +155,8 @@ export function VariantPicker({
           </p>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

@@ -50,7 +50,7 @@ const SEEDS: Seed[] = [
   {
     slug: "camiseta-fuera-de-linea", name: "Camiseta Fuera de Línea", category: "camisetas", price: 99000,
     description: "La primera edición. Se agotó en una tarde; avísanos por WhatsApp si quieres que vuelva.",
-    colors: ["Hueso", "Negro"], sizes: ["S", "M", "L"], stock: () => 0,
+    colors: ["Hueso", "Negro"], sizes: ["S", "M", "L"], stock: (_s, c) => (c === "Negro" ? 4 : 0),
   },
   {
     slug: "buzo-desconexion", name: "Buzo Desconexión", category: "buzos", price: 219000,
