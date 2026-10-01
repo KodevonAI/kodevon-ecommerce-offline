@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SIZE_SUGGESTIONS, sortSizes } from "@/lib/sizes";
+import { rowForAddedSize, type SizeRow } from "@/lib/size-rows";
 import { setStockAction } from "@/app/admin/productos/actions";
 
 type Result = { error?: string; ok?: string } | undefined;
-export type SizeRow = { size: string; stock: number; variantId?: number };
+export type { SizeRow };
 
 const MAX_SIZE_LEN = 10;
 const normalize = (s: string) => s.trim().replace(/\s+/g, " ").toUpperCase();
@@ -29,8 +30,10 @@ function StockAdjust({ variantId }: { variantId: number }) {
   );
 }
 
-export function SizeStockEditor({ rows, onChange, threshold, formId }: {
+export function SizeStockEditor({ rows, saved, onChange, threshold, formId }: {
   rows: SizeRow[];
+  /** Filas tal como están guardadas en el servidor (para recuperar una talla quitada sin guardar). */
+  saved: SizeRow[];
   onChange: (rows: SizeRow[]) => void;
   threshold: number;
   /** id del formulario del editor, para validar el stock inicial de tallas nuevas. */
@@ -43,14 +46,8 @@ export function SizeStockEditor({ rows, onChange, threshold, formId }: {
   const sorted = [...rows].sort((a, b) => (order.get(a.size) ?? 0) - (order.get(b.size) ?? 0));
   const hasExisting = rows.some((r) => r.variantId !== undefined);
 
-  // Tallas guardadas que se quitaron sin guardar: si se vuelven a agregar, se recupera la fila con su stock real.
-  const [removed, setRemoved] = useState<Record<string, SizeRow>>({});
-  const add = (size: string) => onChange([...rows, removed[size] ?? { size, stock: 0 }]);
-  const remove = (size: string) => {
-    const row = rows.find((r) => r.size === size);
-    if (row?.variantId !== undefined) setRemoved((m) => ({ ...m, [size]: row }));
-    onChange(rows.filter((r) => r.size !== size));
-  };
+  const add = (size: string) => onChange([...rows, rowForAddedSize(size, saved)]);
+  const remove = (size: string) => onChange(rows.filter((r) => r.size !== size));
   const toggle = (size: string) => (has(size) ? remove(size) : add(size));
   const setStock = (size: string, stock: number) => onChange(rows.map((r) => (r.size === size ? { ...r, stock } : r)));
 

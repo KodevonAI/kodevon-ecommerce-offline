@@ -148,7 +148,7 @@ export function ProductEditor({ mode, id, categories, threshold, initial, notice
               <CardDescription>Elige las tallas disponibles en este color y su stock.</CardDescription>
             </CardHeader>
             <CardContent>
-              <SizeStockEditor rows={rows} onChange={setRows} threshold={threshold} formId={formId} />
+              <SizeStockEditor rows={rows} saved={initial.rows} onChange={setRows} threshold={threshold} formId={formId} />
             </CardContent>
           </Card>
         </div>
