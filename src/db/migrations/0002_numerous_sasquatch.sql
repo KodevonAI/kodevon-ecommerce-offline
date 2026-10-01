@@ -1,7 +1,7 @@
 DO $$
 DECLARE bad text;
 BEGIN
-  SELECT string_agg(p.name, ', ') INTO bad FROM products p
+  SELECT string_agg(p.name, ', ' ORDER BY p.name) INTO bad FROM products p
   WHERE (SELECT count(DISTINCT v.color_name) FROM variants v WHERE v.product_id = p.id) > 1;
   IF bad IS NOT NULL THEN
     RAISE EXCEPTION 'Divide estos productos por color antes de migrar: %', bad;
@@ -21,6 +21,8 @@ WHERE v.product_id = p.id;
 UPDATE "products" SET "model_id" = 'm-' || "id";
 --> statement-breakpoint
 ALTER TABLE "products" ALTER COLUMN "model_id" SET NOT NULL;
+--> statement-breakpoint
+ALTER TABLE "products" ALTER COLUMN "model_id" SET DEFAULT gen_random_uuid()::text;
 --> statement-breakpoint
 ALTER TABLE "variants" ALTER COLUMN "color_name" SET DEFAULT '';
 --> statement-breakpoint

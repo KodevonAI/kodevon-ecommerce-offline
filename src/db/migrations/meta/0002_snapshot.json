@@ -441,7 +441,8 @@
           "name": "model_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()::text"
         },
         "created_at": {
           "name": "created_at",

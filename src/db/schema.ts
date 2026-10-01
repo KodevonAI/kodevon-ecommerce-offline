@@ -26,7 +26,7 @@ export const products = pgTable("products", {
   active: boolean("active").notNull().default(true),
   colorName: text("color_name").notNull().default(""),
   colorHex: text("color_hex").notNull().default("#000000"),
-  modelId: text("model_id").notNull(),
+  modelId: text("model_id").notNull().default(sql`gen_random_uuid()::text`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("products_model_id_idx").on(t.modelId)]);
 

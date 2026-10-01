@@ -60,4 +60,14 @@ describe("migración 0002 (color en products)", () => {
     await c.query(`insert into variants (product_id, size, stock) values ($1, 'L', 3)`, [id]);
     await expect(c.query(`insert into variants (product_id, size, stock) values ($1, 'L', 1)`, [id])).rejects.toThrow();
   });
+
+  it("el código antiguo (insert sin model_id ni color) sigue funcionando y cada producto recibe su model_id", async () => {
+    const c = await legacyDb();
+    await run(c, "0002_");
+    const a = await c.query<{ model_id: string }>(`insert into products (name, slug, price) values ('A', 'a', 100) returning model_id`);
+    const b = await c.query<{ model_id: string }>(`insert into products (name, slug, price) values ('B', 'b', 100) returning model_id`);
+    expect(a.rows[0].model_id).toBeTruthy();
+    expect(b.rows[0].model_id).toBeTruthy();
+    expect(a.rows[0].model_id).not.toBe(b.rows[0].model_id);
+  });
 });
