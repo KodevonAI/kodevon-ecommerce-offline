@@ -49,11 +49,20 @@ E2E_DATABASE_URL=postgres://… npm run e2e
 ## Despliegue en Vercel
 
 1. Crea un repo remoto y súbelo (`git remote add origin …; git push -u origin main`).
-2. En Vercel: **Add New → Project** e importa el repo.
+2. En Vercel: **Add New → Project** e importa el repo (aún sin desplegar).
 3. **Storage → Marketplace → Neon** (Postgres gratis) y **Storage → Blob**; conecta ambos al proyecto (inyectan `DATABASE_URL` y `BLOB_READ_WRITE_TOKEN`).
-4. Agrega las variables `SESSION_SECRET` (`openssl rand -base64 48`), `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
-5. Despliega. Luego, una sola vez, desde local apuntando a la BD de producción: `npm run db:migrate && npm run seed:admin`.
-6. Entra a `/admin/ajustes` y configura el número de WhatsApp.
+4. Agrega la variable `SESSION_SECRET` (`openssl rand -base64 48`).
+5. **Antes del primer despliegue** (o al menos antes de enviar tráfico), aplica las migraciones y crea el admin contra la BD de producción, pasando la URL en el comando para no tocar `.env.local`:
+
+   ```bash
+   DATABASE_URL="<url de producción>" npm run db:migrate
+   DATABASE_URL="<url de producción>" ADMIN_EMAIL=tu@correo.com ADMIN_PASSWORD='<contraseña>' npm run seed:admin
+   ```
+
+   Alternativa: `vercel env pull .env.production.local` y exporta `DATABASE_URL` desde ahí. Ambos comandos imprimen el host y la base de datos que van a tocar; verifícalo antes de continuar.
+   **Ojo:** si los ejecutas sin `DATABASE_URL` en el comando, usan la de `.env.local` (tu BD de desarrollo) y migran esa.
+6. Despliega.
+7. Entra a `/admin/ajustes` y configura el número de WhatsApp. Hasta entonces la tienda no acepta pedidos y el dashboard muestra un aviso.
 
 ## Notas conocidas
 
