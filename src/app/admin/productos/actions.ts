@@ -1,4 +1,5 @@
 "use server";
+import { del } from "@vercel/blob";
 import { eq } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
@@ -6,10 +7,8 @@ import { getDb } from "@/db/client";
 import { products } from "@/db/schema";
 import { requireAdmin } from "@/server/auth";
 import { adjustStock } from "@/server/orders";
-import {
-  createProduct, generateVariants, moveImage, normalizeSizes, parseColorLines, removeImage, removeVariant, updateProduct,
-} from "@/server/products";
-import { productSchema } from "@/lib/validators";
+import { createProductFull, deleteProduct, updateProductFull } from "@/server/products";
+import { mapSaveError, parseProductPayload } from "@/lib/product-payload";
 
 type Result = { error?: string; ok?: string } | undefined;
 
@@ -18,52 +17,68 @@ const refresh = () => {
   revalidatePath("/admin/productos");
 };
 
-const emptyToNull = (v: FormDataEntryValue | null) => {
-  const s = typeof v === "string" ? v.trim() : "";
-  return s === "" ? null : s;
-};
+/** El `redirect()` de Next lanza una excepción con digest NEXT_REDIRECT: nunca debe tratarse como error de guardado. */
+const isNextRedirect = (e: unknown) =>
+  typeof e === "object" && e !== null && "digest" in e && String((e as { digest: unknown }).digest).startsWith("NEXT_REDIRECT");
 
-export async function saveProduct(id: number | null, _: unknown, fd: FormData): Promise<Result> {
-  await requireAdmin();
-  const parsed = productSchema.safeParse({
-    name: fd.get("name"),
-    description: fd.get("description") ?? "",
-    categoryId: emptyToNull(fd.get("categoryId")),
-    price: fd.get("price"),
-    salePrice: emptyToNull(fd.get("salePrice")),
-    active: fd.get("active") === "on",
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const db = getDb();
-  if (id === null) {
-    const created = await createProduct(db, parsed.data);
-    refresh();
-    redirect(`/admin/productos/${created.id}`);
+/** Borra fotos de Blob sin lanzar nunca: si falla, el producto ya quedó guardado/borrado y solo se registra. */
+async function deleteBlobs(urls: string[]) {
+  try {
+    if (urls.length && process.env.BLOB_READ_WRITE_TOKEN) await del(urls);
+  } catch (e) {
+    console.error("No se pudieron borrar fotos de Blob", e);
   }
-  await updateProduct(db, id, parsed.data);
-  refresh();
-  revalidatePath(`/admin/productos/${id}`);
-  return { ok: "Guardado" };
 }
 
-export async function generateVariantsAction(productId: number, _: unknown, fd: FormData): Promise<Result> {
+export async function saveProductFull(id: number | null, _: unknown, fd: FormData): Promise<Result> {
   await requireAdmin();
-  const checked = fd.getAll("size").map(String);
-  const extra = String(fd.get("extraSizes") ?? "").split(",");
-  const sizes = normalizeSizes([...checked, ...extra]);
-  const parsed = parseColorLines(String(fd.get("colors") ?? ""));
-  if ("error" in parsed) return { error: parsed.error };
-  const colors = parsed.colors;
-  if (sizes.length === 0) return { error: "Elige al menos una talla" };
-  if (colors.length === 0) return { error: "Agrega al menos un color (nombre:#hex)" };
-  const created = await generateVariants(getDb(), productId, sizes, colors);
+  if (id !== null && (!Number.isInteger(id) || id < 1)) return { error: "Producto inválido" };
+  const parsed = parseProductPayload(String(fd.get("payload") ?? ""));
+  if (!parsed.ok) return { error: parsed.error };
+  const db = getDb();
+  let createdId: number | null = null;
+  try {
+    if (id === null) {
+      createdId = (await createProductFull(db, parsed.data)).id;
+    } else {
+      const updated = await updateProductFull(db, id, parsed.data);
+      if (!updated) return { error: "El producto ya no existe" };
+      refresh();
+      revalidatePath(`/admin/productos/${id}`);
+      await deleteBlobs(updated.removedImages);
+      return { ok: "Cambios guardados" };
+    }
+  } catch (e) {
+    if (isNextRedirect(e)) throw e;
+    console.error("Error al guardar producto", e);
+    return { error: mapSaveError(e) };
+  }
   refresh();
-  revalidatePath(`/admin/productos/${productId}`);
-  return { ok: created === 0 ? "Esas combinaciones ya existían" : `${created} combinaciones creadas` };
+  redirect(`/admin/productos/${createdId}?creado=1`);
+}
+
+// `_prev` lo exige la firma de useActionState aunque no se use.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function deleteProductAction(id: number, _prev: unknown): Promise<Result> {
+  await requireAdmin();
+  if (!Number.isInteger(id) || id < 1) return { error: "Producto inválido" };
+  let r: Awaited<ReturnType<typeof deleteProduct>>;
+  try {
+    r = await deleteProduct(getDb(), id);
+  } catch (e) {
+    console.error("Error al eliminar producto", e);
+    return { error: "No se pudo eliminar el producto" };
+  }
+  if (r.status === "has_orders") return { error: "Este producto tiene pedidos: no se puede eliminar, solo archivar." };
+  if (r.status === "not_found") return { error: "El producto ya no existe" };
+  await deleteBlobs(r.imageUrls);
+  refresh();
+  redirect("/admin/productos");
 }
 
 export async function setStockAction(variantId: number, _: unknown, fd: FormData): Promise<Result> {
   await requireAdmin();
+  if (!Number.isInteger(variantId) || variantId < 1) return { error: "Talla inválida" };
   const amount = Math.abs(Math.trunc(Number(fd.get("delta") ?? 1)));
   const dir = Number(fd.get("dir")) < 0 ? -1 : 1;
   if (!Number.isInteger(amount) || amount < 1) return { error: "Cantidad inválida" };
@@ -76,31 +91,11 @@ export async function setStockAction(variantId: number, _: unknown, fd: FormData
   return { ok: `Stock: ${r.data.stock}` };
 }
 
-export async function removeVariantAction(fd: FormData) {
-  await requireAdmin();
-  await removeVariant(getDb(), Number(fd.get("id")));
-  refresh();
-  revalidatePath("/admin/productos/[id]", "page");
-}
-
-export async function removeImageAction(fd: FormData) {
-  await requireAdmin();
-  await removeImage(getDb(), Number(fd.get("id")));
-  refresh();
-  revalidatePath("/admin/productos/[id]", "page");
-}
-
-export async function moveImageAction(fd: FormData) {
-  await requireAdmin();
-  const dir = fd.get("dir") === "down" ? "down" : "up";
-  await moveImage(getDb(), Number(fd.get("id")), dir);
-  refresh();
-  revalidatePath("/admin/productos/[id]", "page");
-}
-
 export async function toggleActive(fd: FormData) {
   await requireAdmin();
   const id = Number(fd.get("id"));
+  if (!Number.isInteger(id) || id < 1) return;
   await getDb().update(products).set({ active: fd.get("active") === "true" }).where(eq(products.id, id));
   refresh();
+  revalidatePath(`/admin/productos/${id}`);
 }
