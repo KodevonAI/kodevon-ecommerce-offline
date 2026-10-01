@@ -2,7 +2,7 @@ import { put } from "@vercel/blob";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { readSession } from "@/server/auth";
-import { validateImageFile } from "@/lib/upload";
+import { blobFileName, validateImageFile } from "@/lib/upload";
 
 /** Solo sube a Blob y devuelve las URLs; el producto guarda sus fotos al pulsar "Guardar" en el editor. */
 export async function POST(req: Request) {
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   const urls: string[] = [];
   try {
     for (const f of files) {
-      const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const safeName = blobFileName(f.name);
       const blob = await put(`products/${Date.now()}-${safeName}`, f, { access: "public", addRandomSuffix: true, contentType: f.type });
       urls.push(blob.url);
     }

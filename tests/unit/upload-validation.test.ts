@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MAX_UPLOAD_BYTES, validateImageFile } from "@/lib/upload";
+import { MAX_UPLOAD_BYTES, blobFileName, validateImageFile } from "@/lib/upload";
 
 const MB4 = 4 * 1024 * 1024;
 
@@ -23,5 +23,22 @@ describe("validateImageFile", () => {
     expect(MAX_UPLOAD_BYTES).toBe(MB4);
     expect(validateImageFile({ name: "a.jpg", type: "image/jpeg", size: MB4 })).toBeNull();
     expect(validateImageFile({ name: "a.jpg", type: "image/jpeg", size: MB4 + 1 })).toMatch(/a\.jpg: máximo 4 MB/);
+  });
+  it("rechaza archivos vacíos", () => {
+    expect(validateImageFile({ name: "a.jpg", type: "image/jpeg", size: 0 })).toMatch(/a\.jpg: archivo vacío/);
+  });
+});
+
+describe("blobFileName", () => {
+  it("sanea caracteres raros", () => {
+    expect(blobFileName("mi foto (1).jpg")).toBe("mi_foto__1_.jpg");
+  });
+  it("limita a 80 caracteres conservando la extensión", () => {
+    const n = blobFileName(`${"a".repeat(300)}.webp`);
+    expect(n.length).toBe(80);
+    expect(n.endsWith(".webp")).toBe(true);
+  });
+  it("nombres cortos quedan intactos", () => {
+    expect(blobFileName("a.png")).toBe("a.png");
   });
 });
