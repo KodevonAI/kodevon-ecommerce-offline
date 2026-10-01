@@ -30,3 +30,4 @@ playwright-report
 
 # caché de vitest
 .vitest
+.claude/

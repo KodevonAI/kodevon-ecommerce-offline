@@ -63,6 +63,7 @@ Para el mismo modelo en otro color usa **Agregar otro color** (en la página del
 
 - **Eliminar**: solo si el producto nunca tuvo pedidos (los pedidos cancelados también cuentan). Borra el producto, sus fotos y su stock.
 - **Archivar / Reactivar**: si tiene pedidos. El producto deja de verse en la tienda pero se conserva el historial; se puede reactivar.
+- Una talla quitada de un producto que ya tiene pedidos no se borra: queda con stock 0 (se conserva el historial) y reaparece en el editor con stock 0.
 
 ## Despliegue en Vercel
 
@@ -86,16 +87,43 @@ Para el mismo modelo en otro color usa **Agregar otro color** (en la página del
 
 Mueve el color de las variantes al producto. Es aditiva: el código desplegado antes sigue funcionando con la BD migrada (`model_id` tiene valor por defecto en la BD, así que los inserts viejos funcionan).
 
-1. **Antes de migrar**, en la consola SQL de Neon (solo lectura); debe devolver **0 filas** (ningún producto con más de un color en sus variantes):
+0. Verifica que el `DATABASE_URL` de los despliegues Preview de Vercel no apunte a la BD de producción.
+1. **Chequeos previos en Neon (solo lectura).** Cada consulta debe devolver **0 filas**, salvo que se indique otra cosa:
 
    ```sql
+   -- migraciones aplicadas (se revisa ANTES de migrar): deben ser 2 filas, la última con created_at = 1790828356728
+   select id, created_at from drizzle.__drizzle_migrations order by created_at;
+   -- ningún producto con más de un color en sus variantes
    select p.name from products p
    where (select count(distinct v.color_name) from variants v where v.product_id = p.id) > 1;
+   select id, url from product_images where url !~* '^https://[a-z0-9-]+\.public\.blob\.vercel-storage\.com/.+';
+   select product_id, count(*) from product_images group by 1 having count(*) > 12;
+   select distinct color_name, color_hex from variants where length(btrim(color_name)) > 40 or color_hex !~ '^#[0-9a-fA-F]{6}$';
+   select product_id, size from variants where length(btrim(size)) > 10;
+   select product_id, count(*) from variants group by 1 having count(*) > 30;
+   select product_id, upper(regexp_replace(btrim(size), '\s+', ' ', 'g')) s, count(*) from variants group by 1, 2 having count(*) > 1;
+   select id, name from products where length(btrim(name)) < 2 or length(name) > 120 or length(description) > 4000 or (sale_price is not null and sale_price >= price);
+   -- informativo: productos sin variantes (quedarán sin color)
+   select count(*) from products p where not exists (select 1 from variants v where v.product_id = p.id);
    ```
 
-2. Migra: `DATABASE_URL="<url>" npm run db:migrate`. Ojo: entre migrar y desplegar, el admin viejo que agregue una talla repetida en un segundo color la ignora en silencio; **despliega justo después**.
+   Los datos que estas consultas encuentren no pasarían el validador nuevo del admin (el producto no se podría editar): corrígelos antes de migrar.
+
+2. **No crees ni edites productos entre migrar y desplegar (congela el admin).** Migra: `DATABASE_URL="<url>" npm run db:migrate`. Ojo: entre migrar y desplegar, el admin viejo que agregue una talla repetida en un segundo color la ignora en silencio; **despliega justo después**.
 3. Sube a `main` para que Vercel despliegue.
-4. Las columnas antiguas `variants.color_name` y `variants.color_hex` quedan en desuso; su limpieza va en una migración posterior.
+4. **Después del despliegue**: ejecuta este backfill (idempotente) y vuelve a correr la consulta de varios colores del paso 1:
+
+   ```sql
+   update products p set color_name = v.color_name, color_hex = v.color_hex
+   from (select distinct on (product_id) product_id, color_name, color_hex
+         from variants where color_name <> '' order by product_id, id) v
+   where v.product_id = p.id and p.color_name = '';
+   ```
+
+5. Prueba rápida: home, filtro de color en `/tienda`, ficha de producto cambiando de color con una talla seleccionada, carrito, checkout hasta el enlace de WhatsApp, dashboard del admin con "Top productos", y guardar un producto antiguo sin cambios.
+6. Las columnas antiguas `variants.color_name` y `variants.color_hex` quedan en desuso; su limpieza va en una migración posterior.
+
+**Rollback:** el rollback instantáneo de Vercel al despliegue anterior es seguro para el esquema, pero los productos creados con el código nuevo tienen vacío el color de las variantes antiguas, así que la UI vieja mostrará un color vacío para ellos.
 
 ## Notas conocidas
 
