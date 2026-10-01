@@ -16,8 +16,10 @@ export default async function EditarProductoPage({ params, searchParams }: {
   searchParams: Promise<{ creado?: string }>;
 }) {
   await requireAdmin();
-  const id = Number((await params).id);
-  if (!Number.isInteger(id) || id < 1) notFound();
+  const rawId = (await params).id;
+  if (!/^\d{1,9}$/.test(rawId)) notFound();
+  const id = Number(rawId);
+  if (id < 1) notFound();
   const created = (await searchParams).creado === "1";
   const db = getDb();
   const data = await getProductEditData(db, id);

@@ -95,7 +95,7 @@ export function VariantPicker({
             Agotado
           </button>
           <p className="text-sm text-mute">Esta prenda no tiene unidades por ahora.</p>
-          {siblings.some((x) => x.inStock) && <p className="text-sm">Disponible en otro color</p>}
+          {siblings.some((x) => x.slug !== currentSlug && x.inStock) && <p className="text-sm">Disponible en otro color</p>}
         </div>
       ) : (
         <>

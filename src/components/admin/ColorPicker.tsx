@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { nearestColorName } from "@/lib/colors";
+import { isHexColor, nearestColorName } from "@/lib/colors";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ export function ColorPicker({ colorName, colorHex, onChange, formId }: {
         <div className="min-w-40 flex-1 space-y-2">
           <Label htmlFor="colorName">Nombre del color</Label>
           <Input id="colorName" value={colorName} maxLength={40} required form={formId} className="h-12"
-            placeholder={nearestColorName(colorHex)}
+            placeholder={isHexColor(colorHex) ? nearestColorName(colorHex) : ""}
             onChange={(e) => {
               // Si se borra el nombre, vuelve a proponerse solo al elegir otro color.
               setNameTouched(e.target.value !== "");

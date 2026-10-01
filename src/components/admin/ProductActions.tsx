@@ -50,9 +50,10 @@ function ArchiveButton({ id, name, active, size }: { id: number; name: string; a
 
 function DeleteButton({ id, name, size }: { id: number; name: string; size: "sm" | "default" }) {
   const [state, action] = useActionState<Result, FormData>(deleteProductAction.bind(null, id), undefined);
+  const [open, setOpen] = useState(false);
   return (
     <>
-      <Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger render={<Button variant="destructive" size={size} />}>Eliminar</DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -67,7 +68,7 @@ function DeleteButton({ id, name, size }: { id: number; name: string; size: "sm"
           </form>
         </DialogContent>
       </Dialog>
-      {state?.error && <p role="alert" className="text-xs text-red-600">{state.error}</p>}
+      {!open && state?.error && <p role="alert" className="text-xs text-red-600">{state.error}</p>}
     </>
   );
 }
