@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getDb } from "@/db/client";
 import { categories, productImages, products, variants } from "@/db/schema";
 import { requireAdmin } from "@/server/auth";
+import { escapeLike } from "@/lib/like";
 import { formatCop } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toggleActive } from "./actions";
 
-const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 export default async function ProductosPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await requireAdmin();

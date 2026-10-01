@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, ilike, inArray, sql, type SQL } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { categories, productImages, products, variants } from "@/db/schema";
+import { escapeLike } from "@/lib/like";
 
 export type CatalogFilters = {
   category?: string; size?: string; color?: string; min?: number; max?: number;
@@ -13,7 +14,6 @@ export type ProductCard = {
 
 const effectivePrice = sql<number>`coalesce(${products.salePrice}, ${products.price})`;
 const firstImage = sql<string | null>`(select ${productImages.url} from ${productImages} where ${productImages.productId} = ${products.id} order by ${productImages.position} asc, ${productImages.id} asc limit 1)`;
-const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 export async function listProducts(db: Db, f: CatalogFilters): Promise<ProductCard[]> {
   const conds: (SQL | undefined)[] = [eq(products.active, true)];
