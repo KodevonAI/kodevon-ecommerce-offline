@@ -24,8 +24,11 @@ export const products = pgTable("products", {
   price: integer("price").notNull(),
   salePrice: integer("sale_price"),
   active: boolean("active").notNull().default(true),
+  colorName: text("color_name").notNull().default(""),
+  colorHex: text("color_hex").notNull().default("#000000"),
+  modelId: text("model_id").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [index("products_model_id_idx").on(t.modelId)]);
 
 export const productImages = pgTable("product_images", {
   id: serial("id").primaryKey(),
@@ -40,13 +43,15 @@ export const variants = pgTable(
     id: serial("id").primaryKey(),
     productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
     size: text("size").notNull(),
-    colorName: text("color_name").notNull(),
+    // DEPRECADO: el color vive en products; se elimina en una migración posterior
+    colorName: text("color_name").notNull().default(""),
     colorHex: text("color_hex").notNull().default("#000000"),
     stock: integer("stock").notNull().default(0),
     sku: text("sku"),
   },
   (t) => [
     uniqueIndex("variants_unique").on(t.productId, t.size, t.colorName),
+    uniqueIndex("variants_product_size_unique").on(t.productId, t.size),
     check("variants_stock_nonneg", sql`${t.stock} >= 0`),
   ],
 );
