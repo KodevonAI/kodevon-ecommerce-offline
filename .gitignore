@@ -27,3 +27,6 @@ playwright-report
 
 # segundo servidor de desarrollo (demo)
 .next-*
+
+# caché de vitest
+.vitest
