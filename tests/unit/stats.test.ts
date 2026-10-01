@@ -4,11 +4,12 @@ import { makeTestDb, seedProduct } from "../helpers/db";
 import { createOrder, confirmOrder, cancelOrder } from "@/server/orders";
 import { getSummary, salesByDay, topProducts, lowStock, resolveRange } from "@/server/stats";
 import { orders } from "@/db/schema";
+import type { Db } from "@/db/client";
 
 const who = { name: "Juan", phone: "3001234567" };
 const wide = { from: new Date("2000-01-01"), to: new Date("2100-01-01") };
 
-async function sale(db: any, variantId: number, qty: number) {
+async function sale(db: Db, variantId: number, qty: number) {
   const r = await createOrder(db, { ...who, items: [{ variantId, qty }] });
   if (!r.ok) throw new Error("setup");
   await confirmOrder(db, r.data.orderId);

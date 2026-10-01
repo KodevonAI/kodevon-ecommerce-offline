@@ -21,7 +21,7 @@ describe("schema", () => {
 
   it("secuencia de códigos existe", async () => {
     const db = await makeTestDb();
-    const r = await db.execute(sql`select nextval('order_code_seq') as n`);
-    expect(Number((r as any).rows[0].n)).toBeGreaterThanOrEqual(1);
+    const r = (await db.execute(sql`select nextval('order_code_seq') as n`)) as unknown as { rows: { n: string }[] };
+    expect(Number(r.rows[0].n)).toBeGreaterThanOrEqual(1);
   });
 });

@@ -3,10 +3,11 @@ import { eq } from "drizzle-orm";
 import { makeTestDb, seedProduct } from "../helpers/db";
 import { createOrder, confirmOrder, cancelOrder, adjustStock } from "@/server/orders";
 import { orders, variants, stockMovements } from "@/db/schema";
+import type { Db } from "@/db/client";
 
 const who = { name: "Juan", phone: "3001234567" };
-const stockOf = async (db: any, id: number) => (await db.select().from(variants).where(eq(variants.id, id)))[0].stock;
-async function pending(db: any, variantId: number, qty: number) {
+const stockOf = async (db: Db, id: number) => (await db.select().from(variants).where(eq(variants.id, id)))[0].stock;
+async function pending(db: Db, variantId: number, qty: number) {
   const r = await createOrder(db, { ...who, items: [{ variantId, qty }] });
   if (!r.ok) throw new Error("setup");
   return r.data.orderId;

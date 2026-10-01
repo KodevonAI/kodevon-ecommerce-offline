@@ -5,14 +5,15 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { adminUsers } from "@/db/schema";
+import { MIN_SECRET_LENGTH, sessionSecretKey } from "@/lib/session-secret";
 import { hit } from "./ratelimit";
 
 const COOKIE = "offline_admin";
 const MAX_AGE = 60 * 60 * 24 * 7;
 const secret = () => {
-  const s = process.env.SESSION_SECRET ?? "";
-  if (s.length < 32) throw new Error("SESSION_SECRET debe tener al menos 32 caracteres");
-  return new TextEncoder().encode(s);
+  const key = sessionSecretKey();
+  if (!key) throw new Error(`SESSION_SECRET debe tener al menos ${MIN_SECRET_LENGTH} caracteres`);
+  return key;
 };
 
 export const hashPassword = (p: string) => bcrypt.hash(p, 10);
