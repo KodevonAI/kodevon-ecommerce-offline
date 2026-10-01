@@ -95,6 +95,21 @@ describe("productFullSchema", () => {
     expect(productFullSchema.safeParse({ ...ok, variants: [{ size: "S", stock: 1.5 }] }).success).toBe(false);
     expect(productFullSchema.safeParse({ ...ok, salePrice: 50000 }).success).toBe(false);
   });
+  it("devuelve mensajes en español", () => {
+    const msg = (o: object) => {
+      const r = productFullSchema.safeParse({ ...ok, ...o });
+      return r.success ? [] : r.error.issues.map((i) => i.message);
+    };
+    const url = "https://abc123.public.blob.vercel-storage.com/products/1-foto.jpg";
+    expect(msg({ images: Array(13).fill(url) })).toContain("Máximo 12 fotos");
+    expect(msg({ colorName: "x".repeat(41) })).toContain("El nombre del color es muy largo (máx. 40)");
+    expect(msg({ variants: [{ size: "x".repeat(11), stock: 1 }] })).toContain("Talla muy larga (máx. 10)");
+    expect(msg({ variants: Array.from({ length: 31 }, (_, i) => ({ size: `T${i}`, stock: 1 })) })).toContain("Máximo 30 tallas");
+    expect(msg({ variants: [{ size: "S", stock: -1 }] })).toContain("El stock no puede ser negativo");
+    expect(msg({ variants: [{ size: "S", stock: 1.5 }] })).toContain("El stock debe ser un número entero");
+    expect(msg({ name: "x".repeat(121) })).toContain("El nombre es muy largo (máx. 120)");
+    expect(msg({ description: "x".repeat(4001) })).toContain("La descripción es muy larga (máx. 4000)");
+  });
   it("acepta números JSON, categoryId null y también coacciona strings numéricos", () => {
     const a = productFullSchema.safeParse({ ...ok, categoryId: 3, price: 50000, salePrice: 40000 });
     expect(a.success && a.data.categoryId === 3 && a.data.salePrice === 40000).toBe(true);
