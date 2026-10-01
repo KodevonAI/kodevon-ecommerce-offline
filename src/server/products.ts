@@ -90,11 +90,11 @@ export async function moveImage(db: Db, imageId: number, dir: "up" | "down"): Pr
       .where(eq(productImages.productId, img.productId))
       .orderBy(asc(productImages.position), asc(productImages.id));
     const idx = siblings.findIndex((s) => s.id === imageId);
-    const other = siblings[dir === "up" ? idx - 1 : idx + 1];
-    if (!other) return;
+    const j = idx + (dir === "up" ? -1 : 1);
+    if (!siblings[j]) return;
     // Se reescriben posiciones contiguas para ser robustos ante empates.
     const order = siblings.map((s) => s.id);
-    [order[idx], order[order.indexOf(other.id)]] = [other.id, imageId];
+    [order[idx], order[j]] = [order[j], order[idx]];
     for (let i = 0; i < order.length; i++) {
       await tx.update(productImages).set({ position: i }).where(eq(productImages.id, order[i]));
     }

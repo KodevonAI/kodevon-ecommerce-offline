@@ -47,4 +47,19 @@ describe("products", () => {
     imgs = await db.select().from(productImages).where(eq(productImages.productId, id)).orderBy(productImages.position);
     expect(imgs.map((i) => i.url)).toEqual(["b.jpg", "a.jpg"]);
   });
+
+  it("moveImage hacia abajo intercambia y los extremos no cambian", async () => {
+    const db = await makeTestDb();
+    const { id } = await createProduct(db, base);
+    for (const u of ["a.jpg", "b.jpg", "c.jpg"]) await addImage(db, id, u);
+    const list = () => db.select().from(productImages).where(eq(productImages.productId, id)).orderBy(productImages.position);
+    let imgs = await list();
+    await moveImage(db, imgs[0].id, "down");
+    imgs = await list();
+    expect(imgs.map((i) => i.url)).toEqual(["b.jpg", "a.jpg", "c.jpg"]);
+    expect(imgs.map((i) => i.position)).toEqual([0, 1, 2]);
+    await moveImage(db, imgs[2].id, "down");
+    await moveImage(db, imgs[0].id, "up");
+    expect((await list()).map((i) => i.url)).toEqual(["b.jpg", "a.jpg", "c.jpg"]);
+  });
 });

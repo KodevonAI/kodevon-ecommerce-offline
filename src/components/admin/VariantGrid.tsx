@@ -52,9 +52,10 @@ function StockCell({ v, threshold }: { v: VariantRowData; threshold: number }) {
       </TableCell>
       <TableCell>
         <form action={action} className="flex items-center gap-1">
-          <Button type="submit" name="dir" value="-1" variant="outline" size="sm" disabled={pending} aria-label="Restar stock">-</Button>
-          <Input name="delta" type="number" min={1} step={1} defaultValue={1} className="w-16" aria-label="Cantidad" />
-          <Button type="submit" name="dir" value="1" variant="outline" size="sm" disabled={pending} aria-label="Sumar stock">+</Button>
+          {/* "+" va primero en el DOM: Enter suma; el orden visual se mantiene con flex order */}
+          <Button type="submit" name="dir" value="1" variant="outline" size="sm" className="order-3" disabled={pending} aria-label="Sumar stock">+</Button>
+          <Button type="submit" name="dir" value="-1" variant="outline" size="sm" className="order-1" disabled={pending} aria-label="Restar stock">-</Button>
+          <Input name="delta" type="number" min={1} step={1} defaultValue={1} className="order-2 w-16" aria-label="Cantidad" />
         </form>
         {state?.error && <p role="alert" className="mt-1 text-xs text-red-600">{state.error}</p>}
       </TableCell>

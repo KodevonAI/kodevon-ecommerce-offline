@@ -19,23 +19,32 @@ export function ImageManager({ productId, images }: { productId: number; images:
     if (files.length === 0) return;
     setError(null);
     setUploading(true);
-    try {
-      const body = new FormData();
-      body.set("productId", String(productId));
-      files.forEach((f) => body.append("files", f));
-      const res = await fetch("/api/admin/upload", { method: "POST", body });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setError(data?.error ?? "No se pudo subir la imagen");
-      } else {
-        router.refresh();
+    const errors: string[] = [];
+    // Un request por archivo: Vercel limita el cuerpo de la función a ~4.5 MB.
+    for (const f of files) {
+      try {
+        const body = new FormData();
+        body.set("productId", String(productId));
+        body.append("files", f);
+        const res = await fetch("/api/admin/upload", { method: "POST", body });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          errors.push(
+            typeof data?.error === "string"
+              ? data.error
+              : res.status === 413
+                ? `${f.name}: El archivo supera el límite de la plataforma`
+                : `${f.name}: No se pudo subir la imagen`,
+          );
+        }
+      } catch {
+        errors.push(`${f.name}: Error de red al subir la imagen`);
       }
-    } catch {
-      setError("Error de red al subir la imagen");
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
     }
+    setError(errors.length ? errors.join(" · ") : null);
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
+    router.refresh();
   }
 
   return (
