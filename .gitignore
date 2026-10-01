@@ -24,3 +24,6 @@ npm-debug.log*
 # playwright
 test-results
 playwright-report
+
+# segundo servidor de desarrollo (demo)
+.next-*
