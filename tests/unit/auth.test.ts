@@ -17,6 +17,10 @@ describe("auth", () => {
     expect(await readSession(t + "x")).toBeNull();
     expect(await readSession(undefined)).toBeNull();
   });
+  it("loginAdmin con email desconocido → invalid", async () => {
+    const db = await makeTestDb();
+    expect(await loginAdmin(db, "nadie@b.co", "pass12345", "9.9.9.9")).toEqual({ ok: false, error: "invalid" });
+  });
   it("loginAdmin ok, inválido y bloqueo por intentos", async () => {
     const db = await makeTestDb();
     await db.insert(adminUsers).values({ email: "a@b.co", passwordHash: await hashPassword("pass12345") });

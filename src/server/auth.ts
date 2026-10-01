@@ -16,6 +16,10 @@ const secret = () => {
   return key;
 };
 
+// Hash bcrypt (coste 10) precalculado de una contraseña inexistente: se verifica contra él cuando el email no existe
+// para que el tiempo de respuesta no delate qué emails están registrados.
+const DUMMY_HASH = "$2b$10$DqOXDD/rvhWochbPkFMTFOaMf/DwfqTcK2m/tuKhc0RqgqIxt5gHy";
+
 export const hashPassword = (p: string) => bcrypt.hash(p, 10);
 export const verifyPassword = (p: string, h: string) => bcrypt.compare(p, h);
 
@@ -26,7 +30,7 @@ export async function readSession(token: string | undefined): Promise<{ adminId:
   if (!token) return null;
   const key = secret(); // fuera del try: un secreto inválido debe fallar con ruido
   try {
-    const { payload } = await jwtVerify(token, key);
+    const { payload } = await jwtVerify(token, key, { algorithms: ["HS256"] });
     return typeof payload.adminId === "number" ? { adminId: payload.adminId } : null;
   } catch { return null; }
 }
@@ -49,6 +53,7 @@ export async function clientIp() {
 export async function loginAdmin(db: Db, email: string, password: string, ip: string) {
   if (!(await hit(db, `login:${ip}`, 5, 15 * 60))) return { ok: false as const, error: "rate_limited" as const };
   const [u] = await db.select().from(adminUsers).where(eq(adminUsers.email, email.trim().toLowerCase()));
-  if (!u || !(await verifyPassword(password, u.passwordHash))) return { ok: false as const, error: "invalid" as const };
+  const valid = await verifyPassword(password, u?.passwordHash ?? DUMMY_HASH);
+  if (!u || !valid) return { ok: false as const, error: "invalid" as const };
   return { ok: true as const, adminId: u.id };
 }

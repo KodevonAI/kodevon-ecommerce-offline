@@ -7,8 +7,9 @@ async function main() {
   const password = process.env.ADMIN_PASSWORD;
   if (!email || !password) throw new Error("ADMIN_EMAIL y ADMIN_PASSWORD requeridas");
   const db = getDb();
-  await db.insert(adminUsers).values({ email, passwordHash: await hashPassword(password) })
-    .onConflictDoUpdate({ target: adminUsers.email, set: { passwordHash: await hashPassword(password) } });
+  const passwordHash = await hashPassword(password);
+  await db.insert(adminUsers).values({ email, passwordHash })
+    .onConflictDoUpdate({ target: adminUsers.email, set: { passwordHash } });
   await db.insert(settings).values({ id: 1 }).onConflictDoNothing();
   console.log("admin listo:", email);
   process.exit(0);

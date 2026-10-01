@@ -10,7 +10,7 @@ export async function middleware(req: NextRequest) {
   // Falla cerrado: sin token o con secreto ausente/corto, se trata como no autenticado.
   if (!token || !key) return NextResponse.redirect(new URL("/admin/login", req.url));
   try {
-    await jwtVerify(token, key);
+    await jwtVerify(token, key, { algorithms: ["HS256"] });
     return NextResponse.next();
   } catch {
     return NextResponse.redirect(new URL("/admin/login", req.url));
