@@ -1,42 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Filters, type ActiveFilters } from "@/components/store/Filters";
+import { Filters } from "@/components/store/Filters";
 import { ProductGrid } from "@/components/store/ProductCard";
+import { parseFilters } from "@/lib/filters";
 import { cachedFilters, cachedList } from "@/server/cached";
 
 export const metadata: Metadata = { title: "Tienda", description: "Todo el catálogo de OFFLINE: camisetas, buzos y pantalones." };
 
-type Params = Record<string, string | string[] | undefined>;
-const SORTS = ["new", "price_asc", "price_desc"] as const;
-
-const one = (v: string | string[] | undefined) => {
-  const s = (Array.isArray(v) ? v[0] : v)?.trim();
-  return s ? s.slice(0, 80) : undefined;
-};
-const num = (v: string | string[] | undefined) => {
-  const s = one(v);
-  if (s === undefined) return undefined;
-  const n = Number(s);
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : undefined;
-};
-
-function parseFilters(sp: Params): ActiveFilters {
-  const sort = one(sp.sort);
-  return {
-    category: one(sp.category),
-    size: one(sp.size),
-    color: one(sp.color),
-    min: num(sp.min),
-    max: num(sp.max),
-    sale: one(sp.sale) === "1" || undefined,
-    q: one(sp.q),
-    sort: SORTS.find((s) => s === sort),
-  };
-}
+type Params = Parameters<typeof parseFilters>[0];
 
 export default async function TiendaPage({ searchParams }: { searchParams: Promise<Params> }) {
-  const f = parseFilters(await searchParams);
-  const [options, products] = await Promise.all([cachedFilters(), cachedList({ ...f, sort: f.sort ?? "new" })]);
+  const sp = await searchParams;
+  const options = await cachedFilters();
+  const f = parseFilters(sp, options);
+  const products = await cachedList({ ...f, sort: f.sort ?? "new" });
   const category = options.categories.find((c) => c.slug === f.category);
 
   return (
