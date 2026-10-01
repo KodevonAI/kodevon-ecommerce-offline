@@ -37,6 +37,7 @@ export async function createProductFull(db: Db, input: ProductInput): Promise<{ 
   const sizes = cleanVariants(input.variants);
   const colorName = collapse(input.colorName);
   const colorHex = input.colorHex.trim().toLowerCase();
+  const images = [...new Set(input.images)];
   return db.transaction(async (t) => {
     const tx = t as unknown as Db;
     const slug = await uniqueSlug(tx, slugify(`${input.name} ${colorName}`) || "producto");
@@ -46,8 +47,8 @@ export async function createProductFull(db: Db, input: ProductInput): Promise<{ 
       price: input.price, salePrice: input.salePrice, active: input.active,
       colorName, colorHex, modelId,
     }).returning({ id: products.id });
-    if (input.images.length) {
-      await tx.insert(productImages).values(input.images.map((url, position) => ({ productId: p.id, url, position })));
+    if (images.length) {
+      await tx.insert(productImages).values(images.map((url, position) => ({ productId: p.id, url, position })));
     }
     const rows = await tx.insert(variants).values(sizes.map((v) => ({ productId: p.id, size: v.size, stock: v.stock })))
       .returning({ id: variants.id, stock: variants.stock });
@@ -77,6 +78,7 @@ export async function updateProductFull(
   const sizes = cleanVariants(input.variants);
   const colorName = collapse(input.colorName);
   const colorHex = input.colorHex.trim().toLowerCase();
+  const images = [...new Set(input.images)];
   return db.transaction(async (t) => {
     const tx = t as unknown as Db;
     const [p] = await tx.select().from(products).where(eq(products.id, id)).for("update");
@@ -89,10 +91,10 @@ export async function updateProductFull(
 
     const before = await tx.select({ url: productImages.url }).from(productImages).where(eq(productImages.productId, id));
     await tx.delete(productImages).where(eq(productImages.productId, id));
-    if (input.images.length) {
-      await tx.insert(productImages).values(input.images.map((url, position) => ({ productId: id, url, position })));
+    if (images.length) {
+      await tx.insert(productImages).values(images.map((url, position) => ({ productId: id, url, position })));
     }
-    const removedImages = before.map((b) => b.url).filter((u) => !input.images.includes(u));
+    const removedImages = before.map((b) => b.url).filter((u) => !images.includes(u));
 
     const existing = await tx.select({ id: variants.id, size: variants.size, stock: variants.stock })
       .from(variants).where(eq(variants.productId, id)).orderBy(asc(variants.id)).for("update");
@@ -122,6 +124,9 @@ export async function deleteProduct(
     const tx = t as unknown as Db;
     const [p] = await tx.select({ id: products.id }).from(products).where(eq(products.id, id)).for("update");
     if (!p) return { status: "not_found" as const };
+    // FOR UPDATE choca con el FOR KEY SHARE que toma el INSERT de order_items (FK): o el borrado espera
+    // y recuenta con snapshot nuevo, o el checkout espera y falla por FK. Mismo patrón que updateProductFull.
+    await tx.select({ id: variants.id }).from(variants).where(eq(variants.productId, id)).orderBy(asc(variants.id)).for("update");
     if (await hasOrders(tx, id)) return { status: "has_orders" as const };
     const imgs = await tx.select({ url: productImages.url }).from(productImages)
       .where(eq(productImages.productId, id)).orderBy(asc(productImages.position), asc(productImages.id));
@@ -136,7 +141,7 @@ export async function getProductEditData(db: Db, id: number) {
   const [images, vs, siblings] = await Promise.all([
     db.select({ url: productImages.url }).from(productImages).where(eq(productImages.productId, id))
       .orderBy(asc(productImages.position), asc(productImages.id)),
-    db.select({ id: variants.id, size: variants.size, stock: variants.stock }).from(variants).where(eq(variants.productId, id)),
+    db.select({ id: variants.id, size: variants.size, stock: variants.stock }).from(variants).where(eq(variants.productId, id)).orderBy(asc(variants.id)),
     db.select({ id: products.id, slug: products.slug, colorName: products.colorName, colorHex: products.colorHex, active: products.active })
       .from(products).where(and(eq(products.modelId, product.modelId), ne(products.id, id))).orderBy(asc(products.id)),
   ]);

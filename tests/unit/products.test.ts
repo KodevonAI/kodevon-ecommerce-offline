@@ -46,6 +46,13 @@ describe("createProductFull", () => {
     expect(r.slug).toBe("blusa-basic-verde-oliva");
   });
 
+  it("elimina URLs de fotos repetidas conservando el orden", async () => {
+    const db = await makeTestDb();
+    const r = await createProductFull(db, { ...base, images: [`${BLOB}/a.jpg`, `${BLOB}/b.jpg`, `${BLOB}/a.jpg`] });
+    const imgs = await db.select().from(productImages).where(eq(productImages.productId, r.id)).orderBy(productImages.position);
+    expect(imgs.map((i) => i.url)).toEqual([`${BLOB}/a.jpg`, `${BLOB}/b.jpg`]);
+  });
+
   it("dos productos con el mismo nombre y color: el segundo recibe sufijo, sin error", async () => {
     const db = await makeTestDb();
     const a = await createProductFull(db, base);
@@ -136,6 +143,31 @@ describe("updateProductFull", () => {
     expect(after[0].stock).toBe(0);
     const mv = await db.select().from(stockMovements).where(eq(stockMovements.variantId, s.id));
     expect(mv.map((m) => m.delta).sort()).toEqual([-3, 3]);
+  });
+
+  it("elimina URLs repetidas al editar y removedImages no tiene duplicados", async () => {
+    const db = await makeTestDb();
+    const { id } = await createProductFull(db, base);
+    const r = await updateProductFull(db, id, { ...base, images: [`${BLOB}/b.jpg`, `${BLOB}/c.jpg`, `${BLOB}/c.jpg`] });
+    expect(r!.removedImages).toEqual([`${BLOB}/a.jpg`]);
+    const imgs = await db.select().from(productImages).where(eq(productImages.productId, id)).orderBy(productImages.position);
+    expect(imgs.map((i) => i.url)).toEqual([`${BLOB}/b.jpg`, `${BLOB}/c.jpg`]);
+  });
+
+  it("es todo o nada: un fallo tras reemplazar fotos deja todo intacto", async () => {
+    const db = await makeTestDb();
+    const { id } = await createProductFull(db, { ...base, variants: [{ size: "S", stock: 3 }] });
+    await expect(updateProductFull(db, id, {
+      ...base, name: "Otro", colorName: "Azul", colorHex: "#0000ff", images: [`${BLOB}/c.jpg`],
+      variants: [{ size: "S", stock: 3 }, { size: "L", stock: -1 }],
+    })).rejects.toThrow();
+    const [p] = await db.select().from(products).where(eq(products.id, id));
+    expect(p).toMatchObject({ name: "Blusa Basic", colorName: "Rojo", colorHex: "#ff0000" });
+    const imgs = await db.select().from(productImages).where(eq(productImages.productId, id)).orderBy(productImages.position);
+    expect(imgs.map((i) => i.url)).toEqual(base.images);
+    const vs = await db.select().from(variants).where(eq(variants.productId, id));
+    expect(vs.map((v) => [v.size, v.stock])).toEqual([["S", 3]]);
+    expect(await count(db, stockMovements)).toBe(1);
   });
 
   it("devuelve null si el producto no existe", async () => {
