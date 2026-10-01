@@ -20,7 +20,7 @@ test("tienda lista productos y el filtro por talla cambia resultados", async ({ 
   const filtered = await page.locator('a[href^="/producto/"]').count();
   expect(filtered).toBeGreaterThan(0);
   expect(filtered).toBeLessThan(all);
-  await expect(page.getByRole("heading", { name: "Pantalón Cargo Pausa" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pantalón Cargo Pausa" }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Camiseta Pausa" })).toHaveCount(0);
 });
 
@@ -33,8 +33,7 @@ test("producto -> carrito -> checkout -> pedido", async ({ page }) => {
       return {} as Window;
     };
   });
-  await page.goto("/producto/camiseta-pausa");
-  await page.getByRole("button", { name: "Negro", exact: true }).click();
+  await page.goto("/producto/camiseta-pausa-negro");
   await page.getByRole("button", { name: "M", exact: true }).click();
   await page.getByRole("button", { name: /agregar al carrito/i }).click();
   await expect(page.getByText("Agregado al carrito.")).toBeVisible();
@@ -65,6 +64,24 @@ test("producto -> carrito -> checkout -> pedido", async ({ page }) => {
   await expect(body).not.toContainText("Cliente E2E");
   await expect(body).not.toContainText("3001234567");
   await expect(body).not.toContainText("300 123 4567");
+});
+
+test("cambiar de color cambia de producto y conserva la talla", async ({ page }) => {
+  await page.goto("/producto/camiseta-pausa-negro");
+  await expect(page).toHaveTitle(/Negro/);
+  await page.getByRole("button", { name: "M", exact: true }).click();
+  await page.getByRole("button", { name: "Hueso", exact: true }).click();
+  await expect(page).toHaveURL(/\/producto\/camiseta-pausa-hueso\?talla=M/);
+  await expect(page).toHaveTitle(/Hueso/);
+  await expect(page.getByRole("button", { name: "M", exact: true })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("el catálogo muestra una tarjeta por color", async ({ page }) => {
+  await page.goto("/tienda");
+  await expect(page.getByRole("link", { name: /Camiseta Pausa/ })).toHaveCount(2);
+  await page.goto("/tienda?color=Hueso");
+  await expect(page.locator('a[href="/producto/camiseta-pausa-hueso"]')).toHaveCount(1);
+  await expect(page.locator('a[href="/producto/camiseta-pausa-negro"]')).toHaveCount(0);
 });
 
 test("/admin/pedidos sin sesión redirige al login", async ({ page }) => {

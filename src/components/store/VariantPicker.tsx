@@ -1,56 +1,50 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { MAX_QTY_PER_LINE } from "@/lib/validators";
 import { sortSizes } from "@/lib/sizes";
 import { useCart } from "./CartProvider";
 
-export type PickerVariant = { id: number; size: string; colorName: string; colorHex: string; stock: number };
+export type PickerVariant = { id: number; size: string; stock: number };
+export type PickerSibling = { slug: string; colorName: string; colorHex: string; inStock: boolean };
 
 const LOW_STOCK = 3;
 
-export function VariantPicker({ variants }: { variants: PickerVariant[] }) {
+export function VariantPicker({
+  variants, colorName, siblings, currentSlug, initialSize,
+}: {
+  variants: PickerVariant[];
+  colorName: string;
+  siblings: PickerSibling[];
+  currentSlug: string;
+  initialSize?: string;
+}) {
   const { items, add } = useCart();
-
-  const colors = useMemo(() => {
-    const m = new Map<string, { name: string; hex: string; stock: number }>();
-    for (const v of variants) {
-      const c = m.get(v.colorName);
-      if (c) c.stock += v.stock;
-      else m.set(v.colorName, { name: v.colorName, hex: v.colorHex, stock: v.stock });
-    }
-    return [...m.values()];
-  }, [variants]);
+  const router = useRouter();
 
   const soldOut = variants.every((v) => v.stock <= 0);
-  const [color, setColor] = useState<string | null>(() => {
-    const available = colors.filter((c) => c.stock > 0);
-    return available.length === 1 ? available[0].name : colors.length === 1 ? colors[0].name : null;
-  });
-  const [size, setSize] = useState<string | null>(null);
+  const [size, setSize] = useState<string | null>(() =>
+    initialSize && variants.some((v) => v.size === initialSize && v.stock > 0) ? initialSize : null,
+  );
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState<number | null>(null);
 
-  const sizesForColor = useMemo(() => {
-    if (!color) return [];
-    const vs = variants.filter((v) => v.colorName === color);
-    return sortSizes(vs.map((v) => v.size)).map((s) => vs.find((v) => v.size === s)!);
-  }, [variants, color]);
+  const sizeVariants = useMemo(
+    () => sortSizes(variants.map((v) => v.size)).map((s) => variants.find((v) => v.size === s)!),
+    [variants],
+  );
 
-  const variant = sizesForColor.find((v) => v.size === size && v.stock > 0) ?? null;
+  const variant = sizeVariants.find((v) => v.size === size && v.stock > 0) ?? null;
   const inCart = variant ? items.find((i) => i.variantId === variant.id)?.qty ?? 0 : 0;
   const cap = variant ? Math.min(variant.stock, MAX_QTY_PER_LINE) : 0;
   const room = Math.max(0, cap - inCart);
   const q = Math.min(qty, Math.max(room, 1));
 
-  function chooseColor(name: string) {
-    setColor(name);
-    setAdded(null);
-    // Conserva la talla si existe y hay stock en el nuevo color.
-    const keep = variants.some((v) => v.colorName === name && v.size === size && v.stock > 0);
-    if (!keep) setSize(null);
-    setQty(1);
+  function goToColor(slug: string) {
+    if (slug === currentSlug) return;
+    router.push(`/producto/${slug}${size ? `?talla=${encodeURIComponent(size)}` : ""}`);
   }
 
   function onAdd() {
@@ -73,54 +67,59 @@ export function VariantPicker({ variants }: { variants: PickerVariant[] }) {
 
   return (
     <div className="flex flex-col gap-7">
+      {siblings.length > 1 ? (
+        <fieldset>
+          <legend className="mb-3 flex w-full justify-between text-sm">
+            <span className="font-medium">Color</span>
+            <span className="text-mute">{colorName}</span>
+          </legend>
+          <div className="flex flex-wrap gap-3">
+            {siblings.map((c) => {
+              const current = c.slug === currentSlug;
+              return (
+                <button
+                  key={c.slug}
+                  type="button"
+                  onClick={() => goToColor(c.slug)}
+                  aria-pressed={current}
+                  aria-current={current ? "true" : undefined}
+                  aria-label={!c.inStock ? `${c.colorName} (agotado)` : c.colorName}
+                  title={c.colorName}
+                  className={`relative size-10 rounded-full p-[3px] ring-1 transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${current ? "ring-2 ring-ink" : "ring-line hover:ring-mute"}`}
+                >
+                  <span className="block size-full rounded-full border border-black/10" style={{ backgroundColor: c.colorHex }} />
+                  {!c.inStock && <span aria-hidden className="absolute left-1/2 top-1/2 h-px w-[130%] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-ink/70" />}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      ) : (
+        <p className="flex justify-between text-sm">
+          <span className="font-medium">Color</span>
+          <span className="text-mute">{colorName}</span>
+        </p>
+      )}
+
       <fieldset>
         <legend className="mb-3 flex w-full justify-between text-sm">
-          <span className="font-medium">Color</span>
-          <span className="text-mute">{color ?? "Elige un color"}</span>
-        </legend>
-        <div className="flex flex-wrap gap-3">
-          {colors.map((c) => {
-            const selected = color === c.name;
-            const out = c.stock <= 0;
-            return (
-              <button
-                key={c.name}
-                type="button"
-                onClick={() => chooseColor(c.name)}
-                aria-pressed={selected}
-                aria-label={out ? `${c.name} (agotado)` : c.name}
-                title={c.name}
-                className={`relative size-10 rounded-full p-[3px] ring-1 transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${selected ? "ring-2 ring-ink" : "ring-line hover:ring-mute"}`}
-              >
-                <span className="block size-full rounded-full border border-black/10" style={{ backgroundColor: c.hex }} />
-                {out && <span aria-hidden className="absolute left-1/2 top-1/2 h-px w-[130%] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-ink/70" />}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      <fieldset disabled={!color}>
-        <legend className="mb-3 flex w-full justify-between text-sm">
           <span className="font-medium">Talla</span>
-          {!color && <span className="text-mute">Primero elige un color</span>}
         </legend>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-          {(color ? sizesForColor : sortSizes([...new Set(variants.map((v) => v.size))]).map((s) => ({ id: -1, size: s, stock: 0 }))).map((v) => {
-            const out = color !== null && v.stock <= 0;
+          {sizeVariants.map((v) => {
+            const out = v.stock <= 0;
             const selected = size === v.size && !out;
             return (
               <button
                 key={v.size}
                 type="button"
-                disabled={!color || out}
+                disabled={out}
                 aria-pressed={selected}
                 aria-label={out ? `${v.size} (agotada)` : v.size}
                 onClick={() => { setSize(v.size); setAdded(null); setQty(1); }}
                 className={`h-11 border text-sm tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed ${
                   selected ? "border-ink bg-ink text-paper"
                   : out ? "border-line text-mute/70 line-through"
-                  : !color ? "border-line text-mute"
                   : "border-line hover:border-ink"
                 }`}
               >
@@ -146,7 +145,7 @@ export function VariantPicker({ variants }: { variants: PickerVariant[] }) {
           disabled={!variant || room <= 0}
           className="h-13 flex-1 rounded-full bg-ink text-base font-medium text-paper transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:bg-line disabled:text-mute"
         >
-          {!color ? "Elige color y talla" : !variant ? "Elige una talla" : room <= 0 ? "Ya tienes todas las unidades" : "Agregar al carrito"}
+          {!variant ? "Elige una talla" : room <= 0 ? "Ya tienes todas las unidades" : "Agregar al carrito"}
         </button>
       </div>
 

@@ -3,8 +3,13 @@ import type { ProductCard as Card } from "@/server/catalog";
 import { Price, discountPct } from "./Price";
 import { ProductImage } from "./ProductImage";
 
+const MAX_DOTS = 5;
+
 export function ProductCard({ product, priority }: { product: Card; priority?: boolean }) {
   const pct = discountPct(product.price, product.salePrice);
+  const dots = [{ colorName: product.colorName, colorHex: product.colorHex }, ...product.colors];
+  const shown = dots.slice(0, MAX_DOTS);
+  const extra = dots.length - shown.length;
   return (
     <Link href={`/producto/${product.slug}`} className="group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink">
       <div className="relative">
@@ -24,6 +29,15 @@ export function ProductCard({ product, priority }: { product: Card; priority?: b
       <div className="mt-3 flex flex-col gap-0.5 pr-2 text-sm">
         <h3 className="font-medium leading-snug underline-offset-4 group-hover:underline">{product.name}</h3>
         <Price price={product.price} salePrice={product.salePrice} className="text-ink/80" />
+        <div className="mt-1 flex items-center gap-1.5 text-xs text-mute">
+          <span aria-hidden className="flex items-center gap-1">
+            {shown.map((d, i) => (
+              <span key={`${d.colorName}-${i}`} title={d.colorName} className="block size-3 rounded-full border border-black/15" style={{ backgroundColor: d.colorHex }} />
+            ))}
+            {extra > 0 && <span className="ml-0.5 tabular-nums">+{extra}</span>}
+          </span>
+          <span>{product.colorName}</span>
+        </div>
       </div>
     </Link>
   );

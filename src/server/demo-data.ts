@@ -79,37 +79,42 @@ const SEEDS: Seed[] = [
   },
 ];
 
-type DemoProduct = ProductDetail & { categorySlug: string; createdAt: number };
+type DemoProduct = Omit<ProductDetail, "siblings"> & { categorySlug: string; createdAt: number; modelId: string };
 
 let nextVariantId = 1;
-const PRODUCTS: DemoProduct[] = SEEDS.map((s, i) => {
-  const variants: DemoVariant[] = [];
-  for (const color of s.colors) {
-    for (const size of s.sizes) {
-      variants.push({ id: nextVariantId++, size, colorName: color, colorHex: COLORS[color], stock: s.stock(size, color) });
-    }
-  }
-  // Igual que la consulta real: tallas en orden alfabético (la UI ordena con sortSizes).
-  variants.sort((a, b) => a.size.localeCompare(b.size) || a.colorName.localeCompare(b.colorName));
-  return {
-    id: i + 1,
-    slug: s.slug,
-    name: s.name,
-    description: s.description,
-    price: s.price,
-    salePrice: s.salePrice ?? null,
-    categoryName: CATEGORIES.find((c) => c.slug === s.category)?.name ?? null,
-    categorySlug: s.category,
-    images: [],
-    variants,
-    createdAt: SEEDS.length - i, // el primero es el más nuevo
-  };
-});
+let nextProductId = 1;
+// Cada combinación (semilla x color) es un producto con su propio slug.
+const PRODUCTS: DemoProduct[] = SEEDS.flatMap((s, i) =>
+  s.colors.map((color) => {
+    const variants: DemoVariant[] = s.sizes.map((size) => ({ id: nextVariantId++, size, stock: s.stock(size, color) }));
+    // Igual que la consulta real: tallas en orden alfabético (la UI ordena con sortSizes).
+    variants.sort((a, b) => a.size.localeCompare(b.size));
+    return {
+      id: nextProductId++,
+      slug: `${s.slug}-${color.toLowerCase()}`,
+      name: s.name,
+      description: s.description,
+      price: s.price,
+      salePrice: s.salePrice ?? null,
+      categoryName: CATEGORIES.find((c) => c.slug === s.category)?.name ?? null,
+      categorySlug: s.category,
+      colorName: color as string,
+      colorHex: COLORS[color] as string,
+      modelId: s.slug,
+      images: [],
+      variants,
+      createdAt: SEEDS.length - i, // el primer modelo es el más nuevo
+    };
+  }),
+);
 
+const inStock = (p: DemoProduct) => p.variants.some((v) => v.stock > 0);
 const effective = (p: DemoProduct) => p.salePrice ?? p.price;
 const toCard = (p: DemoProduct): ProductCard => ({
   id: p.id, slug: p.slug, name: p.name, price: p.price, salePrice: p.salePrice,
-  image: p.images[0] ?? null, inStock: p.variants.some((v) => v.stock > 0),
+  image: p.images[0] ?? null, inStock: inStock(p), colorName: p.colorName, colorHex: p.colorHex,
+  colors: PRODUCTS.filter((o) => o.modelId === p.modelId && o.id !== p.id)
+    .map((o) => ({ slug: o.slug, colorName: o.colorName, colorHex: o.colorHex })),
 });
 
 export function demoListProducts(f: CatalogFilters): ProductCard[] {
@@ -117,16 +122,16 @@ export function demoListProducts(f: CatalogFilters): ProductCard[] {
   const rows = PRODUCTS.filter((p) =>
     (!f.category || p.categorySlug === f.category) &&
     (!f.size || p.variants.some((v) => v.size === f.size && v.stock > 0)) &&
-    (!f.color || p.variants.some((v) => v.colorName === f.color && v.stock > 0)) &&
+    (!f.color || p.colorName === f.color) &&
     (typeof f.min !== "number" || effective(p) >= f.min) &&
     (typeof f.max !== "number" || effective(p) <= f.max) &&
     (!f.sale || p.salePrice !== null) &&
     (!q || p.name.toLowerCase().includes(q)),
   );
   rows.sort((a, b) =>
-    f.sort === "price_asc" ? effective(a) - effective(b) || b.createdAt - a.createdAt
-    : f.sort === "price_desc" ? effective(b) - effective(a) || b.createdAt - a.createdAt
-    : b.createdAt - a.createdAt,
+    f.sort === "price_asc" ? effective(a) - effective(b) || b.createdAt - a.createdAt || a.id - b.id
+    : f.sort === "price_desc" ? effective(b) - effective(a) || b.createdAt - a.createdAt || a.id - b.id
+    : b.createdAt - a.createdAt || a.id - b.id,
   );
   return rows.map(toCard);
 }
@@ -135,15 +140,18 @@ export function demoProductBySlug(slug: string): ProductDetail | null {
   const p = PRODUCTS.find((x) => x.slug === slug);
   if (!p) return null;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { categorySlug, createdAt, ...detail } = p;
-  return detail;
+  const { categorySlug, createdAt, modelId, ...detail } = p;
+  return {
+    ...detail,
+    siblings: PRODUCTS.filter((o) => o.modelId === modelId)
+      .map((o) => ({ slug: o.slug, colorName: o.colorName, colorHex: o.colorHex, inStock: inStock(o) })),
+  };
 }
 
 export function demoFilterOptions() {
-  const all = PRODUCTS.flatMap((p) => p.variants);
-  const sizes = [...new Set(all.map((v) => v.size))].sort();
+  const sizes = [...new Set(PRODUCTS.flatMap((p) => p.variants.map((v) => v.size)))].sort();
   const colorMap = new Map<string, string>();
-  for (const v of all) if (!colorMap.has(v.colorName)) colorMap.set(v.colorName, v.colorHex);
+  for (const p of PRODUCTS) if (!colorMap.has(p.colorName)) colorMap.set(p.colorName, p.colorHex);
   const colors = [...colorMap].map(([name, hex]) => ({ name, hex })).sort((a, b) => a.name.localeCompare(b.name));
   return { categories: CATEGORIES, sizes, colors };
 }
@@ -158,7 +166,7 @@ export function demoCartLines(ids: number[]): CartLine[] {
     for (const v of p.variants) {
       if (!want.has(v.id)) continue;
       out.push({
-        variantId: v.id, productName: p.name, slug: p.slug, size: v.size, colorName: v.colorName,
+        variantId: v.id, productName: p.name, slug: p.slug, size: v.size, colorName: p.colorName,
         price: effective(p), stock: v.stock, image: p.images[0] ?? null, active: true,
       });
     }
@@ -169,10 +177,10 @@ export function demoCartLines(ids: number[]): CartLine[] {
 /** Pedido fijo para /pedido/OFF-DEMO (no se guarda nada). */
 export function demoOrder(): PublicOrder {
   const p = PRODUCTS[0];
-  const q = PRODUCTS[1];
+  const q = PRODUCTS.find((x) => x.slug === "camiseta-modo-avion-blanco") ?? PRODUCTS[1];
   const lines = [
-    { productName: p.name, size: "M", colorName: "Negro", qty: 2, unitPrice: effective(p) },
-    { productName: q.name, size: "S", colorName: "Blanco", qty: 1, unitPrice: effective(q) },
+    { productName: p.name, size: "M", colorName: p.colorName, qty: 2, unitPrice: effective(p) },
+    { productName: q.name, size: "S", colorName: q.colorName, qty: 1, unitPrice: effective(q) },
   ];
   return {
     code: "OFF-DEMO", status: "pending",
