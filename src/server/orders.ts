@@ -46,6 +46,7 @@ export async function createOrder(
     const total = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
 
     const seq = await tx.execute(sql`select nextval('order_code_seq') as n`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const n = Number((seq as any).rows[0].n);
     const code = `OFF-${String(n).padStart(4, "0")}`;
 

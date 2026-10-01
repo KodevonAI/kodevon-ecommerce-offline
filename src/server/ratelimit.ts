@@ -8,5 +8,6 @@ export async function hit(db: Db, key: string, limit: number, windowSec: number)
       count = case when rate_limits.window_start < now() - make_interval(secs => ${windowSec}) then 1 else rate_limits.count + 1 end,
       window_start = case when rate_limits.window_start < now() - make_interval(secs => ${windowSec}) then now() else rate_limits.window_start end
     returning count`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return Number((r as any).rows[0].count) <= limit;
 }

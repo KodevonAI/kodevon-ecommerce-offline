@@ -3,6 +3,7 @@ import type { PgDatabase } from "drizzle-orm/pg-core";
 import { Pool } from "pg";
 import * as schema from "./schema";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Db = PgDatabase<any, typeof schema>;
 
 const g = globalThis as unknown as { __pool?: Pool };
