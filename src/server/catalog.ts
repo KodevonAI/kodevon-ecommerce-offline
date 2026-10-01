@@ -90,3 +90,10 @@ export async function getCartLines(db: Db, ids: number[]) {
 }
 
 export type CartLine = Awaited<ReturnType<typeof getCartLines>>[number];
+
+/** Productos inactivos no se publican: solo queda lo mínimo para el aviso "ya no está disponible". */
+export function redactInactiveLines(lines: CartLine[]): CartLine[] {
+  return lines.map((l) =>
+    l.active ? l : { variantId: l.variantId, active: false, productName: l.productName, colorName: l.colorName, size: l.size, slug: "", price: 0, stock: 0, image: null },
+  );
+}

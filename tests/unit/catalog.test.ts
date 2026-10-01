@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { makeTestDb, seedProduct } from "../helpers/db";
-import { listProducts, getProductBySlug, getCartLines } from "@/server/catalog";
+import { listProducts, getProductBySlug, getCartLines, redactInactiveLines } from "@/server/catalog";
 import { slugify } from "@/lib/slug";
 import { categories, products } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -71,5 +71,11 @@ describe("getProductBySlug / getCartLines", () => {
     const [l] = await getCartLines(db, variantIds);
     expect(l).toMatchObject({ price: 80, stock: 4, active: true, size: "M", colorName: "Negro" });
     expect(await getCartLines(db, [])).toEqual([]);
+  });
+  it("redactInactiveLines oculta precio/stock/imagen/slug de productos inactivos", async () => {
+    const db = await makeTestDb();
+    const { variantIds } = await seedProduct(db, { price: 100, active: false, variants: [{ size: "M", color: "Negro", stock: 4 }] });
+    const [l] = redactInactiveLines(await getCartLines(db, variantIds));
+    expect(l).toEqual({ variantId: variantIds[0], active: false, productName: expect.any(String), colorName: "Negro", size: "M", slug: "", price: 0, stock: 0, image: null });
   });
 });
