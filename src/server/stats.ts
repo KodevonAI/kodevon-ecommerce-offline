@@ -43,7 +43,8 @@ export function resolveRange(
       const f = custom ? parseDay(custom.from) : null;
       const t = custom ? parseDay(custom.to) : null;
       if (f !== null && t !== null && f <= t) {
-        return { from: new Date(f), to: new Date(t + DAY_MS - 1) };
+        // máximo 366 días (from..to inclusive): acota consultas y el relleno de salesByDay
+        return { from: new Date(Math.max(f, t - 365 * DAY_MS)), to: new Date(t + DAY_MS - 1) };
       }
       return resolveRange("30d", now);
     }
@@ -59,7 +60,7 @@ const confirmedIn = (r: Range) =>
 export async function getSummary(db: Db, r: Range) {
   const [row] = await db
     .select({
-      sales: sql<number>`coalesce(sum(${orders.total}), 0)::int`,
+      sales: sql<number>`coalesce(sum(${orders.total}), 0)::bigint`,
       orders: count(),
     })
     .from(orders)
@@ -73,7 +74,7 @@ export async function getSummary(db: Db, r: Range) {
 export async function salesByDay(db: Db, r: Range) {
   const day = sql<string>`to_char(${orders.confirmedAt} at time zone 'America/Bogota', 'YYYY-MM-DD')`;
   const rows = await db
-    .select({ day, total: sql<number>`coalesce(sum(${orders.total}), 0)::int`, orders: count() })
+    .select({ day, total: sql<number>`coalesce(sum(${orders.total}), 0)::bigint`, orders: count() })
     .from(orders)
     .where(confirmedIn(r))
     .groupBy(day);
@@ -87,8 +88,8 @@ export async function salesByDay(db: Db, r: Range) {
 }
 
 export async function topProducts(db: Db, r: Range, limit = 5) {
-  const units = sql<number>`sum(${orderItems.qty})::int`;
-  const revenue = sql<number>`sum(${orderItems.qty} * ${orderItems.unitPrice})::int`;
+  const units = sql<number>`sum(${orderItems.qty})::bigint`;
+  const revenue = sql<number>`sum(${orderItems.qty} * ${orderItems.unitPrice})::bigint`;
   const rows = await db
     .select({ name: orderItems.productName, units, revenue })
     .from(orderItems)

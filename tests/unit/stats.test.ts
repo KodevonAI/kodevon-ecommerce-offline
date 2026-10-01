@@ -46,6 +46,14 @@ describe("stats", () => {
     expect((await salesByDay(db, r)).reduce((a, x) => a + x.total, 0)).toBe(10000);
   });
 
+  it("custom con más de 366 días se acota a 366 días terminando en `to`", () => {
+    const r = resolveRange("custom", new Date("2026-03-12T12:00:00Z"), { from: "2000-01-01", to: "2026-03-10" });
+    expect(r.to.toISOString()).toBe("2026-03-11T04:59:59.999Z");
+    expect(r.from.toISOString()).toBe("2025-03-10T05:00:00.000Z");
+    const ok = resolveRange("custom", new Date("2026-03-12T12:00:00Z"), { from: "2025-03-10", to: "2026-03-10" });
+    expect(ok.from.toISOString()).toBe("2025-03-10T05:00:00.000Z");
+  });
+
   it("un pedido confirmado y luego cancelado se excluye de ventas, top y salesByDay", async () => {
     const db = await makeTestDb();
     const { variantIds: [v] } = await seedProduct(db, { price: 10000, variants: [{ size: "M", color: "Negro", stock: 20 }] });
