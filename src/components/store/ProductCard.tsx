@@ -7,7 +7,8 @@ const MAX_DOTS = 5;
 
 export function ProductCard({ product, priority }: { product: Card; priority?: boolean }) {
   const pct = discountPct(product.price, product.salePrice);
-  const dots = [{ colorName: product.colorName, colorHex: product.colorHex }, ...product.colors];
+  const hasColor = product.colorName !== "";
+  const dots = [...(hasColor ? [{ colorName: product.colorName, colorHex: product.colorHex }] : []), ...(product.colors ?? [])];
   const shown = dots.slice(0, MAX_DOTS);
   const extra = dots.length - shown.length;
   return (
@@ -36,7 +37,7 @@ export function ProductCard({ product, priority }: { product: Card; priority?: b
             ))}
             {extra > 0 && <span className="ml-0.5 tabular-nums">+{extra}</span>}
           </span>
-          <span>{product.colorName}</span>
+          {hasColor && <span>{product.colorName}</span>}
         </div>
       </div>
     </Link>

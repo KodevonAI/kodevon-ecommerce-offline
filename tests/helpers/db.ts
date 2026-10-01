@@ -37,10 +37,11 @@ export async function seedProduct(
   if (o.images?.length) {
     await db.insert(schema.productImages).values(o.images.map((url, position) => ({ productId: p.id, url, position })));
   }
-  // DEPRECADO: columnas legacy de variants, se quitan en la migración de limpieza
-  // (catalog.ts/orders.ts aún leen variants.color_name hasta la Task 4).
+  // DEPRECADO: columnas legacy de variants, se quitan en la migración de limpieza.
+  // Van vacías a propósito: el código de producción no debe leer variants.color_*
+  // (el color es del producto), así los tests detectan cualquier lectura de ahí.
   const rows = vs.length === 0 ? [] : await db.insert(schema.variants).values(
-    vs.map((v) => ({ productId: p.id, size: v.size, stock: v.stock, colorName: color, colorHex })),
+    vs.map((v) => ({ productId: p.id, size: v.size, stock: v.stock, colorName: "" })),
   ).returning();
   return { productId: p.id, variantIds: rows.map((r) => r.id), modelId };
 }

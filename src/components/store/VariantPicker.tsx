@@ -13,7 +13,7 @@ export type PickerSibling = { slug: string; colorName: string; colorHex: string;
 const LOW_STOCK = 3;
 
 export function VariantPicker({
-  variants, colorName, siblings, currentSlug, initialSize,
+  variants, colorName, siblings = [], currentSlug, initialSize,
 }: {
   variants: PickerVariant[];
   colorName: string;

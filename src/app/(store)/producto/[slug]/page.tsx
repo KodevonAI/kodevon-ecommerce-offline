@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await cachedProduct((await params).slug);
   if (!p) return { title: "Producto no encontrado" };
   const description = (p.description || `${p.name} de OFFLINE`).slice(0, 160);
-  const title = `${p.name} · ${p.colorName}`;
+  const title = p.colorName ? `${p.name} · ${p.colorName}` : p.name;
   return {
     title,
     description,
@@ -38,13 +38,13 @@ export default async function ProductPage({ params, searchParams }: Props) {
         <Gallery images={p.images} name={p.name} />
         <div className="md:sticky md:top-24 md:self-start">
           <h1 className="font-wide text-3xl font-semibold leading-[1.05] md:text-4xl">{p.name}</h1>
-          <p className="mt-2 text-base text-mute">{p.colorName}</p>
+          {p.colorName && <p className="mt-2 text-base text-mute">{p.colorName}</p>}
           <div className="mt-4 flex items-center gap-3 text-lg">
             <Price price={p.price} salePrice={p.salePrice} />
             {pct > 0 && !soldOut && <span className="bg-ink px-2 py-0.5 text-xs font-medium tabular-nums text-paper">−{pct}%</span>}
           </div>
           <div className="mt-8">
-            <VariantPicker key={p.slug} variants={p.variants} colorName={p.colorName} siblings={p.siblings} currentSlug={p.slug} initialSize={talla} />
+            <VariantPicker key={p.slug} variants={p.variants} colorName={p.colorName} siblings={p.siblings ?? []} currentSlug={p.slug} initialSize={talla} />
           </div>
           {p.description && (
             <div className="mt-8 border-t border-line pt-6">

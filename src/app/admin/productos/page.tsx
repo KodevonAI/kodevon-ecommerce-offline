@@ -72,10 +72,12 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                   </TableCell>
                   <TableCell>
                     <Link href={`/admin/productos/${r.id}`} className="font-medium text-neutral-900 hover:underline">{r.name}</Link>
-                    <span className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
-                      <span className="inline-block size-3 rounded-full border border-neutral-300" style={{ backgroundColor: r.colorHex }} aria-hidden />
-                      {r.colorName}
-                    </span>
+                    {r.colorName && (
+                      <span className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
+                        <span className="inline-block size-3 rounded-full border border-neutral-300" style={{ backgroundColor: r.colorHex }} aria-hidden />
+                        {r.colorName}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>{r.category ?? "—"}</TableCell>
                   <TableCell>
@@ -91,7 +93,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                     <Badge variant={r.active ? "default" : "secondary"}>{r.active ? "Activo" : "Archivado"}</Badge>
                   </TableCell>
                   <TableCell>
-                    <ProductActions id={r.id} name={`${r.name} (${r.colorName})`} active={r.active} hasOrders={r.hasOrders} />
+                    <ProductActions id={r.id} name={r.colorName ? `${r.name} (${r.colorName})` : r.name} active={r.active} hasOrders={r.hasOrders} />
                   </TableCell>
                 </TableRow>
               ))}

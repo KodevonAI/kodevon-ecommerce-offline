@@ -41,16 +41,18 @@ export default async function EditarProductoPage({ params, searchParams }: {
               <h1 className="text-2xl font-semibold text-neutral-900">{p.name}</h1>
               {!p.active && <Badge variant="secondary">Archivado</Badge>}
             </div>
-            <p className="flex items-center gap-2 text-sm text-neutral-600">
-              <span className="inline-block size-4 rounded-full border border-neutral-300" style={{ backgroundColor: p.colorHex }} aria-hidden />
-              {p.colorName}
-            </p>
+            {p.colorName && (
+              <p className="flex items-center gap-2 text-sm text-neutral-600">
+                <span className="inline-block size-4 rounded-full border border-neutral-300" style={{ backgroundColor: p.colorHex }} aria-hidden />
+                {p.colorName}
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap items-start gap-2">
             <Link href={`/admin/productos/nuevo?desde=${id}`} className={buttonVariants({ variant: "outline" })}>
               Agregar otro color
             </Link>
-            <ProductActions id={id} name={`${p.name} (${p.colorName})`} active={p.active} hasOrders={withOrders} size="default" />
+            <ProductActions id={id} name={p.colorName ? `${p.name} (${p.colorName})` : p.name} active={p.active} hasOrders={withOrders} size="default" />
           </div>
         </div>
         {siblings.length > 0 && (
