@@ -70,3 +70,37 @@ describe("buildReopenMessage", () => {
     expect(buildReopenMessage("OFF-0007")).toBe("Hola OFFLINE, te escribo por mi pedido OFF-0007");
   });
 });
+
+import { productFullSchema } from "@/lib/validators";
+
+describe("productFullSchema", () => {
+  const ok = {
+    name: "Blusa Basic", description: "", categoryId: null, price: 50000, salePrice: null, active: true,
+    colorName: "Rojo", colorHex: "#ff0000",
+    images: ["https://abc123.public.blob.vercel-storage.com/products/1-foto.jpg"],
+    variants: [{ size: "S", stock: 3 }, { size: "M", stock: 0 }],
+  };
+  it("acepta un producto válido", () => expect(productFullSchema.safeParse(ok).success).toBe(true));
+  it.each(["http://abc.public.blob.vercel-storage.com/a.jpg", "javascript:alert(1)", "https://evil.com/a.jpg", "https://abc.public.blob.vercel-storage.com.evil.com/a.jpg", ""])(
+    "rechaza la foto %s", (url) => expect(productFullSchema.safeParse({ ...ok, images: [url] }).success).toBe(false));
+  it.each(["red", "#fff", "#GGGGGG", "ff0000", ""])("rechaza el color %s", (colorHex) =>
+    expect(productFullSchema.safeParse({ ...ok, colorHex }).success).toBe(false));
+  it("exige color con nombre, al menos una talla y tallas sin repetir (ignorando mayúsculas)", () => {
+    expect(productFullSchema.safeParse({ ...ok, colorName: "  " }).success).toBe(false);
+    expect(productFullSchema.safeParse({ ...ok, variants: [] }).success).toBe(false);
+    expect(productFullSchema.safeParse({ ...ok, variants: [{ size: "m", stock: 1 }, { size: "M", stock: 2 }] }).success).toBe(false);
+  });
+  it("rechaza stock negativo o fraccionario y oferta mayor o igual al precio", () => {
+    expect(productFullSchema.safeParse({ ...ok, variants: [{ size: "S", stock: -1 }] }).success).toBe(false);
+    expect(productFullSchema.safeParse({ ...ok, variants: [{ size: "S", stock: 1.5 }] }).success).toBe(false);
+    expect(productFullSchema.safeParse({ ...ok, salePrice: 50000 }).success).toBe(false);
+  });
+  it("acepta números JSON, categoryId null y también coacciona strings numéricos", () => {
+    const a = productFullSchema.safeParse({ ...ok, categoryId: 3, price: 50000, salePrice: 40000 });
+    expect(a.success && a.data.categoryId === 3 && a.data.salePrice === 40000).toBe(true);
+    const b = productFullSchema.safeParse(ok);
+    expect(b.success && b.data.categoryId === null && b.data.salePrice === null).toBe(true);
+    const c = productFullSchema.safeParse({ ...ok, categoryId: "3", price: "50000", salePrice: "40000" });
+    expect(c.success && c.data.categoryId === 3 && c.data.price === 50000 && c.data.salePrice === 40000).toBe(true);
+  });
+});

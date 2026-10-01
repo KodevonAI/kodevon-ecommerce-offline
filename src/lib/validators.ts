@@ -26,16 +26,35 @@ export const categorySchema = z.object({
   name: z.string().trim().min(2).max(50),
 });
 
-export const productSchema = z.object({
+const productBase = z.object({
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().max(4000).default(""),
   categoryId: z.coerce.number().int().positive().nullable(),
   price: z.coerce.number().int().min(1),
   salePrice: z.coerce.number().int().min(1).nullable(),
   active: z.boolean(),
-}).refine((p) => p.salePrice === null || p.salePrice < p.price, {
+});
+
+export const productSchema = productBase.refine((p) => p.salePrice === null || p.salePrice < p.price, {
   message: "La oferta debe ser menor al precio", path: ["salePrice"],
 });
+
+export const BLOB_URL = /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\/.+/i;
+
+export const productFullSchema = productBase
+  .extend({
+    colorName: z.string().trim().min(1, "Ponle nombre al color").max(40),
+    colorHex: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Color inválido"),
+    modelId: z.string().min(1).max(64).optional(),
+    images: z.array(z.string().regex(BLOB_URL, "Foto inválida")).max(12),
+    variants: z.array(z.object({
+      size: z.string().trim().min(1, "Talla vacía").max(10),
+      stock: z.number().int().min(0).max(100000),
+    })).min(1, "Agrega al menos una talla").max(30),
+  })
+  .refine((p) => p.salePrice === null || p.salePrice < p.price, { message: "La oferta debe ser menor al precio", path: ["salePrice"] })
+  .refine((p) => new Set(p.variants.map((v) => v.size.trim().toUpperCase())).size === p.variants.length, { message: "Hay tallas repetidas", path: ["variants"] });
+export type ProductFullInput = z.infer<typeof productFullSchema>;
 
 export const settingsSchema = z.object({
   whatsappNumber: z.string().transform((v, ctx) => {
