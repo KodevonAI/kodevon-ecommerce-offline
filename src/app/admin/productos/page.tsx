@@ -1,7 +1,7 @@
 import { asc, desc, eq, ilike, sql } from "drizzle-orm";
 import Link from "next/link";
 import { getDb } from "@/db/client";
-import { categories, productImages, products, variants } from "@/db/schema";
+import { categories, orderItems, productImages, products, variants } from "@/db/schema";
 import { requireAdmin } from "@/server/auth";
 import { escapeLike } from "@/lib/like";
 import { formatCop } from "@/lib/money";
@@ -9,8 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toggleActive } from "./actions";
-
+import { ProductActions } from "@/components/admin/ProductActions";
 
 export default async function ProductosPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await requireAdmin();
@@ -22,8 +21,12 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       price: products.price,
       salePrice: products.salePrice,
       active: products.active,
+      colorName: products.colorName,
+      colorHex: products.colorHex,
       category: categories.name,
       image: sql<string | null>`(select ${productImages.url} from ${productImages} where ${productImages.productId} = ${products.id} order by ${productImages.position} asc, ${productImages.id} asc limit 1)`,
+      // Una sola subconsulta por fila (sin N+1): decide si se puede eliminar o solo archivar.
+      hasOrders: sql<boolean>`exists(select 1 from ${orderItems} oi join ${variants} v on v.id = oi.variant_id where v.product_id = ${products.id})`,
       stock: sql<number>`coalesce((select sum(${variants.stock}) from ${variants} where ${variants.productId} = ${products.id}), 0)::int`,
     })
     .from(products)
@@ -53,7 +56,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                 <TableHead>Precio</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead />
+                <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -69,6 +72,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                   </TableCell>
                   <TableCell>
                     <Link href={`/admin/productos/${r.id}`} className="font-medium text-neutral-900 hover:underline">{r.name}</Link>
+                    <span className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
+                      <span className="inline-block size-3 rounded-full border border-neutral-300" style={{ backgroundColor: r.colorHex }} aria-hidden />
+                      {r.colorName}
+                    </span>
                   </TableCell>
                   <TableCell>{r.category ?? "—"}</TableCell>
                   <TableCell>
@@ -81,14 +88,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                   </TableCell>
                   <TableCell>{r.stock}</TableCell>
                   <TableCell>
-                    <Badge variant={r.active ? "default" : "secondary"}>{r.active ? "Activo" : "Oculto"}</Badge>
+                    <Badge variant={r.active ? "default" : "secondary"}>{r.active ? "Activo" : "Archivado"}</Badge>
                   </TableCell>
                   <TableCell>
-                    <form action={toggleActive}>
-                      <input type="hidden" name="id" value={r.id} />
-                      <input type="hidden" name="active" value={String(!r.active)} />
-                      <Button type="submit" variant="outline" size="sm">{r.active ? "Ocultar" : "Activar"}</Button>
-                    </form>
+                    <ProductActions id={r.id} name={`${r.name} (${r.colorName})`} active={r.active} hasOrders={r.hasOrders} />
                   </TableCell>
                 </TableRow>
               ))}
