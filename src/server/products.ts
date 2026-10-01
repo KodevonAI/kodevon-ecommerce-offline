@@ -18,7 +18,8 @@ export async function createProduct(db: Db, data: ProductData): Promise<{ id: nu
   const taken = new Set(existing.map((r) => r.slug));
   let slug = base;
   for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
-  const [row] = await db.insert(products).values({ ...data, slug }).returning({ id: products.id, slug: products.slug });
+  // interino: Task 3 reemplaza createProduct
+  const [row] = await db.insert(products).values({ ...data, slug, modelId: crypto.randomUUID() }).returning({ id: products.id, slug: products.slug });
   return row;
 }
 
