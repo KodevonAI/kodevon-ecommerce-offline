@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { eq } from "drizzle-orm";
 import { makeTestDb, seedProduct } from "../helpers/db";
-import { createProduct, generateVariants, removeVariant, addImage, moveImage } from "@/server/products";
+import { createProduct, generateVariants, normalizeSizes, parseColorLines, removeVariant, addImage, moveImage } from "@/server/products";
 import { createOrder } from "@/server/orders";
 import { variants, productImages, stockMovements } from "@/db/schema";
 
@@ -22,6 +22,37 @@ describe("products", () => {
     expect(await generateVariants(db, id, ["S", "M"], [{ name: "Negro", hex: "#000000" }])).toBe(2);
     expect(await generateVariants(db, id, ["S", "M", "L"], [{ name: "Negro", hex: "#000000" }])).toBe(1);
     expect(await db.select().from(variants).where(eq(variants.productId, id))).toHaveLength(3);
+  });
+
+  it("generateVariants normaliza tallas y deduplica colores sin distinguir mayúsculas", async () => {
+    const db = await makeTestDb();
+    const { id } = await createProduct(db, base);
+    const n = await generateVariants(db, id, [" m ", "M", "x  l"], [{ name: "  Azul   Rey ", hex: "#000080" }, { name: "azul rey", hex: "#111111" }]);
+    expect(n).toBe(2);
+    const vs = await db.select().from(variants).where(eq(variants.productId, id));
+    expect(vs.map((v) => v.size).sort()).toEqual(["M", "X L"]);
+    expect(new Set(vs.map((v) => v.colorName))).toEqual(new Set(["Azul Rey"]));
+    expect(vs[0].colorHex).toBe("#000080");
+  });
+
+  it("normalizeSizes pasa a mayúsculas y colapsa espacios", () => {
+    expect(normalizeSizes(["s", " S ", "xl", "", "2  xl"])).toEqual(["S", "XL", "2 XL"]);
+  });
+
+  it("parseColorLines acepta nombre:#hex, colapsa espacios y deduplica", () => {
+    expect(parseColorLines("Negro:#151515\n  verde   oscuro : #00ff00 \nNEGRO:#000000\nBlanco\nGris:")).toEqual({
+      colors: [
+        { name: "Negro", hex: "#151515" },
+        { name: "verde oscuro", hex: "#00ff00" },
+        { name: "Blanco", hex: "#000000" },
+        { name: "Gris", hex: "#000000" },
+      ],
+    });
+  });
+
+  it("parseColorLines rechaza un sufijo hex inválido en vez de volverlo parte del nombre", () => {
+    expect(parseColorLines("Negro:#zzz")).toEqual({ error: expect.stringContaining("Negro:#zzz") });
+    expect(parseColorLines("Rojo:#fff")).toHaveProperty("error");
   });
 
   it("removeVariant borra si no tiene ventas y pone stock 0 si las tiene", async () => {

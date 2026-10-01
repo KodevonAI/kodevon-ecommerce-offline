@@ -33,17 +33,44 @@ export async function updateProduct(db: Db, id: number, data: ProductData): Prom
   }).where(eq(products.id, id));
 }
 
+const collapse = (s: string) => s.trim().replace(/\s+/g, " ");
+
+/** Tallas: espacios colapsados, en mayúsculas y sin repetidos. */
+export function normalizeSizes(sizes: string[]): string[] {
+  return [...new Set(sizes.map((s) => collapse(s).toUpperCase()).filter(Boolean))];
+}
+
+/** Colores "Nombre:#hex" (uno por línea). Un sufijo tras ":" que no sea un hex válido es un error. */
+export function parseColorLines(text: string): { colors: { name: string; hex: string }[] } | { error: string } {
+  const colors: { name: string; hex: string }[] = [];
+  const seen = new Set<string>();
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    const i = line.lastIndexOf(":");
+    const suffix = i >= 0 ? line.slice(i + 1).trim() : "";
+    if (suffix && !/^#[0-9a-fA-F]{6}$/.test(suffix)) return { error: `Color inválido "${line}": usa nombre:#RRGGBB` };
+    const name = collapse(i >= 0 ? line.slice(0, i) : line);
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    colors.push({ name, hex: suffix || "#000000" });
+  }
+  return { colors };
+}
+
 export async function generateVariants(
   db: Db,
   productId: number,
   sizes: string[],
   colors: { name: string; hex: string }[],
 ): Promise<number> {
-  const cleanSizes = [...new Set(sizes.map((s) => s.trim()).filter(Boolean))];
+  const cleanSizes = normalizeSizes(sizes);
   const seen = new Set<string>();
   const cleanColors = colors
-    .map((c) => ({ name: c.name.trim(), hex: c.hex }))
-    .filter((c) => c.name && !seen.has(c.name) && seen.add(c.name));
+    .map((c) => ({ name: collapse(c.name), hex: c.hex }))
+    .filter((c) => c.name && !seen.has(c.name.toLowerCase()) && seen.add(c.name.toLowerCase()));
   const values = cleanSizes.flatMap((size) =>
     cleanColors.map((c) => ({ productId, size, colorName: c.name, colorHex: c.hex, stock: 0 })),
   );

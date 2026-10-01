@@ -7,7 +7,7 @@ import { products } from "@/db/schema";
 import { requireAdmin } from "@/server/auth";
 import { adjustStock } from "@/server/orders";
 import {
-  createProduct, generateVariants, moveImage, removeImage, removeVariant, updateProduct,
+  createProduct, generateVariants, moveImage, normalizeSizes, parseColorLines, removeImage, removeVariant, updateProduct,
 } from "@/server/products";
 import { productSchema } from "@/lib/validators";
 
@@ -50,19 +50,10 @@ export async function generateVariantsAction(productId: number, _: unknown, fd: 
   await requireAdmin();
   const checked = fd.getAll("size").map(String);
   const extra = String(fd.get("extraSizes") ?? "").split(",");
-  const sizes = [...new Set([...checked, ...extra].map((s) => s.trim()).filter(Boolean))];
-  const colors = String(fd.get("colors") ?? "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const i = line.lastIndexOf(":");
-      const hasHex = i > 0 && /^#[0-9a-fA-F]{6}$/.test(line.slice(i + 1).trim());
-      return hasHex
-        ? { name: line.slice(0, i).trim(), hex: line.slice(i + 1).trim() }
-        : { name: line.replace(/:\s*$/, ""), hex: "#000000" };
-    })
-    .filter((c) => c.name);
+  const sizes = normalizeSizes([...checked, ...extra]);
+  const parsed = parseColorLines(String(fd.get("colors") ?? ""));
+  if ("error" in parsed) return { error: parsed.error };
+  const colors = parsed.colors;
   if (sizes.length === 0) return { error: "Elige al menos una talla" };
   if (colors.length === 0) return { error: "Agrega al menos un color (nombre:#hex)" };
   const created = await generateVariants(getDb(), productId, sizes, colors);
