@@ -17,6 +17,8 @@ export function buildOrderMessage(o: { code: string; name: string; lines: MsgLin
   ].join("\n");
 }
 
+export const buildReopenMessage = (code: string): string => `Hola OFFLINE, te escribo por mi pedido ${code}`;
+
 export function buildWaUrl(storeNumber: string, text: string): string {
   return `https://wa.me/57${storeNumber}?text=${encodeURIComponent(text)}`;
 }

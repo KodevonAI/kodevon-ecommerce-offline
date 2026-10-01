@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { formatCop } from "@/lib/money";
 import { normalizePhone } from "@/lib/phone";
-import { buildOrderMessage, buildWaUrl, buildCustomerChatUrl } from "@/lib/whatsapp";
+import { buildOrderMessage, buildWaUrl, buildCustomerChatUrl, buildReopenMessage } from "@/lib/whatsapp";
 import { checkoutSchema } from "@/lib/validators";
 
 describe("formatCop", () => {
@@ -62,5 +62,11 @@ describe("checkoutSchema", () => {
     expect(checkoutSchema.safeParse({ ...ok, items: [] }).success).toBe(false);
     expect(checkoutSchema.safeParse({ ...ok, name: "  " }).success).toBe(false);
     expect(checkoutSchema.safeParse({ ...ok, phone: "123" }).success).toBe(false);
+  });
+});
+
+describe("buildReopenMessage", () => {
+  it("no incluye datos del cliente", () => {
+    expect(buildReopenMessage("OFF-0007")).toBe("Hola OFFLINE, te escribo por mi pedido OFF-0007");
   });
 });

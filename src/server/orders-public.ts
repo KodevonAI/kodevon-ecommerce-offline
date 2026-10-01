@@ -5,15 +5,10 @@ import type { MsgLine } from "@/lib/whatsapp";
 
 export type PublicOrder = {
   code: string;
-  customerName: string;
-  /** Solo los últimos 4 dígitos; el teléfono completo nunca sale de la BD hacia la página pública. */
-  maskedPhone: string;
   status: "pending" | "confirmed" | "cancelled";
   total: number;
   lines: MsgLine[];
 };
-
-export const maskPhone = (phone: string): string => `••••••${phone.slice(-4)}`;
 
 export const STATUS_LABEL: Record<PublicOrder["status"], string> = {
   pending: "Pendiente",
@@ -22,13 +17,12 @@ export const STATUS_LABEL: Record<PublicOrder["status"], string> = {
 };
 
 export async function getPublicOrder(db: Db, code: string): Promise<PublicOrder | null> {
-  const [o] = await db.select().from(orders).where(eq(orders.code, code)).limit(1);
+  // Página pública sin auth: proyección explícita, nunca nombre ni teléfono.
+  const [o] = await db.select({ id: orders.id, code: orders.code, status: orders.status, total: orders.total }).from(orders).where(eq(orders.code, code)).limit(1);
   if (!o) return null;
   const items = await db.select().from(orderItems).where(eq(orderItems.orderId, o.id)).orderBy(asc(orderItems.id));
   return {
     code: o.code,
-    customerName: o.customerName,
-    maskedPhone: maskPhone(o.customerPhone),
     status: o.status,
     total: o.total,
     lines: items.map((i) => ({

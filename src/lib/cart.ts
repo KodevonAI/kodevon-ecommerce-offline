@@ -1,10 +1,12 @@
 import { MAX_QTY_PER_LINE } from "./validators";
 
 export type CartItem = { variantId: number; qty: number };
+export const MAX_CART_LINES = 50;
 const cap = (qty: number, maxStock: number) => Math.max(0, Math.min(Math.floor(qty), maxStock, MAX_QTY_PER_LINE));
 
 export function addItem(items: CartItem[], item: CartItem, maxStock: number): CartItem[] {
   const cur = items.find((i) => i.variantId === item.variantId);
+  if (!cur && items.length >= MAX_CART_LINES) return items;
   const qty = cap((cur?.qty ?? 0) + item.qty, maxStock);
   if (qty <= 0) return items.filter((i) => i.variantId !== item.variantId);
   return cur
@@ -36,7 +38,7 @@ export function parseStored(raw: string | null): CartItem[] {
         merged.set(i.variantId, (merged.get(i.variantId) ?? 0) + i.qty);
       }
     }
-    return [...merged].map(([variantId, qty]) => ({ variantId, qty: Math.min(qty, MAX_QTY_PER_LINE) }));
+    return [...merged].slice(0, MAX_CART_LINES).map(([variantId, qty]) => ({ variantId, qty: Math.min(qty, MAX_QTY_PER_LINE) }));
   } catch {
     return [];
   }

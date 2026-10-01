@@ -63,6 +63,7 @@ export default function CheckoutPage() {
       clear();
       const w = window.open(r.waUrl, "_blank");
       if (w === null) {
+        router.replace(`/pedido/${r.code}`); // al volver de WhatsApp con Atrás, cae en el pedido
         window.location.href = r.waUrl; // popup bloqueado: abrir WhatsApp en esta pestaña
         return;
       }

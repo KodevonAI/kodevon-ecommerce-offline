@@ -23,6 +23,7 @@ export function useCartLines() {
   useEffect(() => {
     if (!ready || !idsKey) return;
     let cancelled = false;
+    setFailed(false);
     fetchCartLines(idsKey.split(",").map(Number))
       .then((lines) => { if (!cancelled) { setFetched({ key: idsKey, lines }); setFailed(false); } })
       .catch(() => { if (!cancelled) setFailed(true); });

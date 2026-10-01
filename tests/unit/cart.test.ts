@@ -30,4 +30,13 @@ describe("cart", () => {
     expect(parseStored('{"variantId":1,"qty":1}')).toEqual([]);
     expect(parseStored('[{"variantId":1,"qty":0},{"variantId":2,"qty":-3},{"variantId":3,"qty":1.5},{"variantId":0,"qty":1}]')).toEqual([]);
   });
+  it("topa en 50 líneas distintas", () => {
+    const fifty = Array.from({ length: 50 }, (_, i) => ({ variantId: i + 1, qty: 1 }));
+    expect(addItem(fifty, { variantId: 999, qty: 1 }, 5)).toEqual(fifty);
+    expect(addItem(fifty, { variantId: 7, qty: 1 }, 5)).toHaveLength(50);
+    const raw = JSON.stringify(Array.from({ length: 60 }, (_, i) => ({ variantId: i + 1, qty: 1 })));
+    const parsed = parseStored(raw);
+    expect(parsed).toHaveLength(50);
+    expect(parsed[49].variantId).toBe(50);
+  });
 });

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDb } from "@/db/client";
 import { formatCop } from "@/lib/money";
-import { buildOrderMessage, buildWaUrl } from "@/lib/whatsapp";
+import { buildReopenMessage, buildWaUrl } from "@/lib/whatsapp";
 import { isDemoMode } from "@/server/cached";
 import { getPublicOrder, STATUS_LABEL, type PublicOrder } from "@/server/orders-public";
 import { getSettings } from "@/server/settings";
@@ -27,18 +27,13 @@ export default async function OrderPage({ params }: Props) {
   const found = await load((await params).code);
   if (!found) notFound();
   const { order, whatsappNumber } = found;
-  const waUrl = buildWaUrl(whatsappNumber, buildOrderMessage({ code: order.code, name: order.customerName, lines: order.lines, total: order.total }));
+  const waUrl = buildWaUrl(whatsappNumber, buildReopenMessage(order.code));
 
   return (
     <div className="mx-auto max-w-[720px] px-4 pb-16 pt-6 md:px-8 md:pt-10">
       <p className="text-sm text-mute">Pedido</p>
       <h1 className="font-wide text-3xl font-semibold leading-[1.05] md:text-4xl">{order.code}</h1>
       <p className="mt-4 inline-block border border-ink px-3 py-1 text-sm font-medium">{STATUS_LABEL[order.status]}</p>
-
-      <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-        <dt className="text-mute">Nombre</dt><dd>{order.customerName}</dd>
-        <dt className="text-mute">Celular</dt><dd className="tabular-nums">{order.maskedPhone}</dd>
-      </dl>
 
       <ul className="mt-8 border-t border-line">
         {order.lines.map((l, i) => (

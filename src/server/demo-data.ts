@@ -175,7 +175,7 @@ export function demoOrder(): PublicOrder {
     { productName: q.name, size: "S", colorName: "Blanco", qty: 1, unitPrice: effective(q) },
   ];
   return {
-    code: "OFF-DEMO", customerName: "Cliente Demo", maskedPhone: "••••••4567", status: "pending",
+    code: "OFF-DEMO", status: "pending",
     total: lines.reduce((t, l) => t + l.unitPrice * l.qty, 0), lines,
   };
 }
