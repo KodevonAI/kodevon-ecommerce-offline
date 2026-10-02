@@ -26,7 +26,6 @@ export function ProductImage({
       className={`t-frame @container relative flex aspect-[4/5] items-end ${className}`}
       style={{ backgroundColor: `var(--ph-bg-${tone})`, color: "var(--store-ink)" }}
     >
-      <span aria-hidden className="pop-only halftone pointer-events-none absolute inset-0 opacity-[0.16] [mask-image:linear-gradient(to_bottom,black,transparent_70%)]" />
       <span
         aria-hidden
         className="wordmark pointer-events-none -ml-[0.04em] block translate-y-[14%] select-none whitespace-nowrap text-[30cqw] uppercase leading-[0.8]"

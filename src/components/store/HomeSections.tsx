@@ -1,31 +1,24 @@
+import Image from "next/image";
 import Link from "next/link";
-
-// Bloques de imagen provisionales (sin foto): tono + palabra grande. Se reemplazan por fotos del lookbook.
-function Plate({ word, bg, fg, className = "" }: { word: string; bg: string; fg: string; className?: string }) {
-  return (
-    <div role="img" aria-label={`${word} (imagen pendiente)`} className={`t-frame t-lift @container relative flex items-end ${className}`} style={{ backgroundColor: bg }}>
-      <span aria-hidden className="pop-only halftone pointer-events-none absolute inset-0 text-ink opacity-[0.14] [mask-image:linear-gradient(to_bottom,black,transparent_75%)]" />
-      <span
-        aria-hidden
-        className="wordmark pointer-events-none -ml-[0.04em] block translate-y-[14%] select-none whitespace-nowrap uppercase leading-[0.8]"
-        style={{ color: fg, fontSize: `min(34cqw, ${(104 / word.length).toFixed(1)}cqw)` }}
-      >
-        {word}
-      </span>
-    </div>
-  );
-}
 
 export function Lookbook() {
   return (
     <section aria-labelledby="lookbook" className="mx-auto max-w-[1440px] px-4 pt-20 md:px-8 md:pt-32">
       <div className="grid gap-4 md:grid-cols-12 md:gap-5">
         <div className="reveal md:col-span-7">
-          <Plate word="Ruta lenta" bg="var(--ph-bg-2)" fg="var(--ph-fg-2)" className="aspect-[4/5] md:aspect-[5/6]" />
+          <div className="t-frame t-lift relative aspect-[5/6]">
+            <Image
+              src="/images/look-ruta-lenta.webp"
+              alt="Mujer caminando por un sendero con pantalón cargo verde oliva y camiseta oversize color crema"
+              fill
+              sizes="(min-width: 768px) 58vw, 100vw"
+              className="object-cover"
+            />
+          </div>
         </div>
         <div className="flex flex-col justify-between gap-8 md:col-span-5 md:pt-24">
           <div className="reveal max-w-sm">
-            <p className="callout t-tag text-base text-[color:var(--accent-link)] md:text-lg">Última tanda</p>
+            <p className="text-sm font-medium text-[color:var(--accent-link)] md:text-base">Última tanda</p>
             <h2 id="lookbook" className="font-wide mt-4 text-3xl leading-[1.05] md:text-4xl">
               Hecha para caminar sin mirar el teléfono.
             </h2>
@@ -36,7 +29,15 @@ export function Lookbook() {
               Ver la tanda
             </Link>
           </div>
-          <Plate word="Hueso" bg="var(--ph-bg-3)" fg="var(--ph-fg-3)" className="reveal aspect-square w-3/5 self-end md:w-2/3" />
+          <div className="t-frame t-lift reveal relative aspect-square w-3/5 self-end md:w-2/3">
+            <Image
+              src="/images/look-hueso.webp"
+              alt="Mujer sentada contra un muro terracota con buzo y pantalón ancho color crema"
+              fill
+              sizes="(min-width: 768px) 28vw, 60vw"
+              className="object-cover"
+            />
+          </div>
         </div>
       </div>
     </section>
@@ -51,15 +52,15 @@ const STEPS = [
 
 export function HowToOrder() {
   return (
-    <section aria-labelledby="como-pedir" className="mx-auto max-w-[1440px] px-4 pt-20 md:px-8 md:pt-32">
+    <section id="como-pedir" aria-labelledby="como-pedir-titulo" className="mx-auto scroll-mt-20 max-w-[1440px] px-4 pt-20 md:px-8 md:pt-32">
       <div className="grid gap-10 md:grid-cols-12 md:gap-5">
         <div className="md:col-span-4">
-          <h2 id="como-pedir" className="font-wide t-tag t-tag--pink text-2xl md:sticky md:top-24 md:text-3xl">Cómo pedir</h2>
+          <h2 id="como-pedir-titulo" className="font-wide text-2xl md:sticky md:top-24 md:text-3xl">Cómo pedir</h2>
         </div>
         <ol className="t-rule-strong-t md:col-span-7 md:col-start-6">
           {STEPS.map((s, i) => (
             <li key={s.title} className="reveal grid grid-cols-[3.5rem_minmax(0,1fr)] gap-x-5 t-rule-b py-7 md:grid-cols-[5.5rem_minmax(0,1fr)] md:py-9">
-              <span aria-hidden className={`t-step t-step--${i + 1}`}>{i + 1}</span>
+              <span aria-hidden className="t-step">{i + 1}</span>
               <div>
                 <h3 className="text-lg font-medium md:text-xl">{s.title}</h3>
                 <p className="mt-2 max-w-md leading-relaxed text-ink/75">{s.body}</p>

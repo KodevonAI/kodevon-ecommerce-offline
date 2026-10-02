@@ -19,7 +19,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
   return (
     <div className="mx-auto max-w-[1440px] px-4 md:px-8">
       <div className="flex items-end justify-between gap-4 pb-6 pt-10 md:pt-14">
-        <h1 className="font-wide t-tag text-3xl md:text-5xl">{category?.name ?? (f.sale ? "Ofertas" : "Tienda")}</h1>
+        <h1 className="font-wide text-3xl md:text-5xl">{category?.name ?? (f.sale ? "Ofertas" : "Tienda")}</h1>
         <p className="pb-1 text-sm text-mute tabular-nums">
           {products.length} {products.length === 1 ? "producto" : "productos"}
         </p>

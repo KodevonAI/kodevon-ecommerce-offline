@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getDb } from "@/db/client";
-import { getFilterOptions, getProductBySlug, listProducts, type CatalogFilters } from "./catalog";
+import { bestsellerIds, getFilterOptions, getProductBySlug, listProducts, type CatalogFilters, type ProductCard } from "./catalog";
 import { getSettings } from "./settings";
 
 /** Demo sin BD, solo en desarrollo. Imposible en producción por el guard de NODE_ENV. */
@@ -21,11 +21,27 @@ export const cachedProduct = async (slug: string) => {
 
 export const cachedFilters = async () => {
   if (isDemoMode()) return (await import("./demo-data")).demoFilterOptions();
-  return unstable_cache(() => getFilterOptions(getDb()), ["filters-v2"], { tags: ["catalog"], revalidate: 300 })();
+  return unstable_cache(() => getFilterOptions(getDb()), ["filters-v3"], { tags: ["catalog"], revalidate: 300 })();
 };
 
 /** Ajustes para el layout público (sin caché: cambian desde admin y son una sola fila). */
 export const storeSettings = async () => {
   if (isDemoMode()) return (await import("./demo-data")).DEMO_SETTINGS;
   return getSettings(getDb());
+};
+
+/** Más vendidos reales. En demo no hay ventas, así que no se inventan: devuelve []. */
+export const cachedBestsellers = async (): Promise<ProductCard[]> => {
+  if (isDemoMode()) return [];
+  return unstable_cache(
+    async () => {
+      const db = getDb();
+      const ids = await bestsellerIds(db, 8);
+      if (ids.length === 0) return [];
+      const cards = await listProducts(db, { ids });
+      return ids.flatMap((id) => cards.find((c) => c.id === id) ?? []);
+    },
+    ["bestsellers-v1"],
+    { tags: ["catalog"], revalidate: 300 },
+  )();
 };

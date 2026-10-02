@@ -1,11 +1,9 @@
 import Link from "next/link";
-import type { Theme } from "@/lib/theme";
 import { buildCustomerChatUrl } from "@/lib/whatsapp";
-import { ThemeSwitch } from "./ThemeSwitch";
 
 const link = "transition-colors hover:text-[color:var(--footer-hover)]";
 
-export function Footer({ storeName, whatsappNumber, theme }: { storeName: string; whatsappNumber: string; theme: Theme }) {
+export function Footer({ storeName, whatsappNumber }: { storeName: string; whatsappNumber: string }) {
   const year = new Date().getFullYear();
   return (
     <footer className="t-footer mt-24">
@@ -32,18 +30,17 @@ export function Footer({ storeName, whatsappNumber, theme }: { storeName: string
         </nav>
         <nav aria-label="Pedido" className="flex flex-col gap-2 text-sm text-[color:var(--footer-mute)]">
           <Link href="/carrito" className={link}>Carrito</Link>
+          <Link href="/favoritos" className={link}>Favoritos</Link>
         </nav>
         <nav aria-label="Legal" className="flex flex-col gap-2 text-sm text-[color:var(--footer-mute)]">
           <Link href="/privacidad" className={link}>Privacidad</Link>
           <Link href="/terminos" className={link}>Términos de compra</Link>
         </nav>
       </div>
-      <p aria-hidden className="pop-only wordmark overflow-hidden whitespace-nowrap px-4 text-[17.5vw] text-pop-yellow md:px-8 min-[1440px]:text-[252px]">OFFLINE</p>
       <div className="border-t border-[color:var(--footer-line)]">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-3 px-4 py-4 text-xs text-[color:var(--footer-mute)] md:flex-row md:items-center md:justify-between md:px-8">
-          <p>© {year} {storeName}. Precios en pesos colombianos.</p>
-          <ThemeSwitch theme={theme} />
-        </div>
+        <p className="mx-auto max-w-[1440px] px-4 py-4 text-xs text-[color:var(--footer-mute)] md:px-8">
+          © {year} {storeName}. Precios en pesos colombianos.
+        </p>
       </div>
     </footer>
   );

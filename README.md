@@ -65,14 +65,17 @@ Para el mismo modelo en otro color usa **Agregar otro color** (en la página del
 - **Archivar / Reactivar**: si tiene pedidos. El producto deja de verse en la tienda pero se conserva el historial; se puede reactivar.
 - Una talla quitada de un producto que ya tiene pedidos no se borra: queda con stock 0 (se conserva el historial) y reaparece en el editor con stock 0.
 
-## Temas visuales
+## Diseño
 
-La tienda tiene dos temas, elegibles por el visitante desde el pie de página (cookie `offline-theme`, un año):
+Estilo sobrio tipo Apple: blanco y gris claro, un solo acento azul, radios grandes y sombras difusas. Los tokens de color y las clases `t-*` / `press` viven en `src/app/globals.css`.
 
-- **apple** (predeterminado): sobrio y minimalista. Blanco/gris claro, un acento azul, radios grandes, sombras difusas.
-- **pop**: pop art de cómic. Papel crema, primarios planos, bordes gruesos, sombras duras, stickers y cinta de texto.
+**Modo claro/oscuro:** el icono sol/luna del header alterna el modo al instante y guarda la elección en la cookie `offline-theme` (`light` | `dark`, un año). Sin cookie sigue al sistema (`prefers-color-scheme`). Los tokens oscuros están en `globals.css` (bloque `:root[data-theme="dark"]` y su espejo para el sistema).
 
-Los dos comparten el mismo marcado: los tokens y las clases `t-*` / `press` viven en `src/app/globals.css` (`:root` es apple y `[data-theme="pop"]` lo sobrescribe). Lo que solo existe en un tema usa `.pop-only` / `.apple-only`. Para cambiar el tema por defecto edita `DEFAULT_THEME` en `src/lib/theme.ts`.
+**Textos de envío, cambios y pago** (producto, home): `src/lib/store-info.ts`. Hoy dicen que todo se acuerda por WhatsApp; cuando haya política formal (plazos, costos, envío gratis desde cierto monto) se edita ahí.
+
+**Más vendidos:** el home muestra "Lo más vendido" solo con ventas reales (pedidos confirmados de los últimos 90 días) y al menos 3 productos. En modo demo no hay ventas, así que la sección no aparece.
+
+**Favoritos:** se guardan en el navegador (`localStorage`, sin cuenta) y se listan en `/favoritos`.
 
 Las páginas `/privacidad` y `/terminos` son un borrador basado en cómo funciona la tienda: que las revise un abogado antes de publicar. El sitemap usa `VERCEL_PROJECT_PRODUCTION_URL` para las URLs absolutas.
 

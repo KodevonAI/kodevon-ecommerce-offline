@@ -7,13 +7,9 @@ export const contentType = "image/png";
 export default function OpengraphImage() {
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: 80, background: "#fff6dd", color: "#141414", border: "16px solid #141414" }}>
-        <div style={{ display: "flex", fontSize: 230, fontWeight: 900, letterSpacing: -8, lineHeight: 1, textShadow: "12px 12px 0 #e5251b" }}>OFFLINE</div>
-        <div style={{ display: "flex", marginTop: 40 }}>
-          <div style={{ display: "flex", fontSize: 44, fontWeight: 700, background: "#ffd400", border: "5px solid #141414", padding: "10px 28px", borderRadius: 999 }}>
-            Ropa para los ratos sin pantalla
-          </div>
-        </div>
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: 90, background: "#f5f5f7", color: "#1d1d1f" }}>
+        <div style={{ display: "flex", fontSize: 220, fontWeight: 800, letterSpacing: -10, lineHeight: 1 }}>OFFLINE</div>
+        <div style={{ display: "flex", marginTop: 30, fontSize: 46, color: "#6e6e73" }}>Ropa para los ratos sin pantalla</div>
       </div>
     ),
     size,

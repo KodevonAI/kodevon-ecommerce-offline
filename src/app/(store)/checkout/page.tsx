@@ -76,7 +76,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const field = "t-field h-12 w-full px-3 text-base aria-[invalid=true]:border-pop-red";
+  const field = "t-field h-12 w-full px-3 text-base aria-[invalid=true]:border-sale";
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 pb-16 pt-6 md:px-8 md:pt-10">

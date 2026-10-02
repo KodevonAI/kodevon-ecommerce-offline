@@ -46,7 +46,7 @@ export function Gallery({ images, name }: { images: string[]; name: string }) {
           ref={zoom}
           aria-label={`Foto ampliada de ${name}`}
           onClick={(e) => { if (e.target === e.currentTarget) zoom.current?.close(); }}
-          className="t-frame t-panel m-auto max-h-[92dvh] w-[min(92vw,900px)] bg-paper p-0 backdrop:bg-ink/60 backdrop:backdrop-blur-sm [overscroll-behavior:contain]"
+          className="t-frame t-panel m-auto max-h-[92dvh] w-[min(92vw,900px)] bg-paper p-0 backdrop:bg-black/60 backdrop:backdrop-blur-sm [overscroll-behavior:contain]"
         >
           <div className="relative aspect-[4/5] max-h-[92dvh] w-full">
             <Image src={main} alt={name} fill sizes="92vw" className="object-contain" />

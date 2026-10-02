@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FavoriteButton } from "@/components/store/FavoriteButton";
 import { Gallery } from "@/components/store/Gallery";
 import { Price, discountPct } from "@/components/store/Price";
+import { ProductGrid } from "@/components/store/ProductCard";
+import { ProductInfo } from "@/components/store/ProductInfo";
 import { VariantPicker } from "@/components/store/VariantPicker";
-import { cachedProduct, storeSettings } from "@/server/cached";
+import { cachedFilters, cachedList, cachedProduct, storeSettings } from "@/server/cached";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ talla?: string | string[] }> };
 
@@ -28,6 +31,13 @@ export default async function ProductPage({ params, searchParams }: Props) {
   const pct = discountPct(p.price, p.salePrice);
   const soldOut = p.variants.every((v) => v.stock <= 0);
 
+  // "Completa el look": prendas de otras categorías (hasta 2 por categoría), solo con stock.
+  const options = await cachedFilters();
+  const mine = options.categories.find((c) => c.name === p.categoryName)?.slug;
+  const others = options.categories.filter((c) => c.slug !== mine).slice(0, 2);
+  const lists = await Promise.all(others.map((c) => cachedList({ category: c.slug, sort: "new" })));
+  const look = lists.flatMap((l) => l.filter((x) => x.inStock).slice(0, 2)).slice(0, 4);
+
   return (
     <div className="mx-auto max-w-[1440px] px-4 pb-8 pt-4 md:px-8 md:pt-8">
       <nav aria-label="Ruta" className="mb-4 text-sm text-mute">
@@ -37,11 +47,14 @@ export default async function ProductPage({ params, searchParams }: Props) {
       <div className="grid gap-8 md:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] md:gap-12 lg:gap-20">
         <Gallery images={p.images} name={p.name} />
         <div className="md:sticky md:top-24 md:self-start">
-          <h1 className="font-wide text-3xl leading-[1.05] md:text-5xl">{p.name}</h1>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="font-wide text-3xl leading-[1.05] md:text-5xl">{p.name}</h1>
+            <FavoriteButton slug={p.slug} name={p.name} className="mt-1 shrink-0 border border-[color:var(--store-line)]" />
+          </div>
           {p.colorName && <p className="mt-2 text-base text-mute">{p.colorName}</p>}
           <div className="mt-4 flex items-center gap-3 text-xl font-semibold">
             <Price price={p.price} salePrice={p.salePrice} />
-            {pct > 0 && !soldOut && <span className="t-sale t-sale--inline callout">−{pct}%</span>}
+            {pct > 0 && !soldOut && <span className="t-sale t-sale--inline">−{pct}%</span>}
           </div>
           <div className="mt-8">
             <VariantPicker key={p.slug} productName={p.name} whatsappNumber={settings.whatsappNumber} variants={p.variants} colorName={p.colorName} siblings={p.siblings ?? []} currentSlug={p.slug} initialSize={talla} />
@@ -52,11 +65,16 @@ export default async function ProductPage({ params, searchParams }: Props) {
               <p className="max-w-prose whitespace-pre-line leading-relaxed text-ink/80">{p.description}</p>
             </div>
           )}
-          <p className="t-rule-t mt-6 pt-6 text-sm text-ink/80">
-            El envío se acuerda por WhatsApp cuando confirmamos tu pedido.
-          </p>
+          <ProductInfo />
         </div>
       </div>
+
+      {look.length > 0 && (
+        <section aria-labelledby="completa-el-look" className="pt-20 md:pt-28">
+          <h2 id="completa-el-look" className="font-wide mb-8 text-2xl md:text-3xl">Completa el look</h2>
+          <ProductGrid products={look} />
+        </section>
+      )}
     </div>
   );
 }

@@ -18,7 +18,7 @@ export function NavLinks() {
           key={i.href}
           href={i.href}
           aria-current={i.current ? "page" : undefined}
-          className="t-nav"
+          className={`t-nav ${i.href.includes("sale") ? "max-sm:hidden" : ""}`}
         >
           {i.label}
         </Link>

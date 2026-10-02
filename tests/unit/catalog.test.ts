@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { makeTestDb, seedProduct } from "../helpers/db";
-import { listProducts, getProductBySlug, getCartLines, getFilterOptions, redactInactiveLines } from "@/server/catalog";
+import { listProducts, getProductBySlug, getCartLines, getFilterOptions, redactInactiveLines, bestsellerIds } from "@/server/catalog";
+import { createOrder, confirmOrder } from "@/server/orders";
 import { slugify } from "@/lib/slug";
 import { categories, products } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -137,5 +138,55 @@ describe("colores como productos", () => {
     const { variantIds } = await seedProduct(db, { color: "Vino", colorHex: "#7b1e3a" });
     const [l] = await getCartLines(db, variantIds);
     expect(l.colorName).toBe("Vino");
+  });
+});
+
+describe("categorías visibles", () => {
+  it("solo aparecen las categorías con al menos un producto activo", async () => {
+    const db = await makeTestDb();
+    const [con, sinActivos, vacia] = await db.insert(categories).values([
+      { name: "Camisetas", slug: "camisetas", position: 1 },
+      { name: "Buzos", slug: "buzos", position: 2 },
+      { name: "Pantalones", slug: "pantalones", position: 3 },
+    ]).returning();
+    const a = await seedProduct(db, { name: "Activa" });
+    const b = await seedProduct(db, { name: "Archivada", active: false });
+    await db.update(products).set({ categoryId: con.id }).where(eq(products.id, a.productId));
+    await db.update(products).set({ categoryId: sinActivos.id }).where(eq(products.id, b.productId));
+    expect(vacia.slug).toBe("pantalones");
+    expect((await getFilterOptions(db)).categories.map((c) => c.slug)).toEqual(["camisetas"]);
+    // al activar el producto de "buzos" la categoría reaparece, en su orden
+    await db.update(products).set({ active: true }).where(eq(products.id, b.productId));
+    expect((await getFilterOptions(db)).categories.map((c) => c.slug)).toEqual(["camisetas", "buzos"]);
+  });
+});
+
+describe("favoritos y más vendidos", () => {
+  it("ids y slugs filtran; un arreglo vacío no devuelve nada", async () => {
+    const db = await makeTestDb();
+    const a = await seedProduct(db, { name: "Camiseta A" });
+    const b = await seedProduct(db, { name: "Camiseta B" });
+    const [{ slug }] = await db.select({ slug: products.slug }).from(products).where(eq(products.id, b.productId));
+    expect((await listProducts(db, { ids: [a.productId] })).map((p) => p.id)).toEqual([a.productId]);
+    expect(await listProducts(db, { ids: [] })).toEqual([]);
+    expect(await listProducts(db, { slugs: [] })).toEqual([]);
+    expect((await listProducts(db, { slugs: [slug] })).map((p) => p.id)).toEqual([b.productId]);
+  });
+
+  it("bestsellerIds ordena por unidades confirmadas y excluye pendientes", async () => {
+    const db = await makeTestDb();
+    const low = await seedProduct(db, { name: "Poco", variants: [{ size: "M", stock: 10 }] });
+    const top = await seedProduct(db, { name: "Mucho", variants: [{ size: "M", stock: 10 }] });
+    const pending = await seedProduct(db, { name: "Pendiente", variants: [{ size: "M", stock: 10 }] });
+    const buy = async (variantId: number, qty: number, confirm = true) => {
+      const r = await createOrder(db, { name: "Ana", phone: "3001234567", items: [{ variantId, qty }] });
+      if (!r.ok) throw new Error("setup");
+      if (confirm) await confirmOrder(db, r.data.orderId);
+    };
+    await buy(low.variantIds[0], 1);
+    await buy(top.variantIds[0], 3);
+    await buy(pending.variantIds[0], 5, false);
+    expect(await bestsellerIds(db, 8)).toEqual([top.productId, low.productId]);
+    expect(await bestsellerIds(db, 1)).toEqual([top.productId]);
   });
 });
