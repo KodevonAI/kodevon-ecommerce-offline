@@ -19,7 +19,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
   return (
     <div className="mx-auto max-w-[1440px] px-4 md:px-8">
       <div className="flex items-end justify-between gap-4 pb-6 pt-10 md:pt-14">
-        <h1 className="font-wide text-3xl font-semibold md:text-5xl">{category?.name ?? (f.sale ? "Ofertas" : "Tienda")}</h1>
+        <h1 className="font-wide t-tag text-3xl md:text-5xl">{category?.name ?? (f.sale ? "Ofertas" : "Tienda")}</h1>
         <p className="pb-1 text-sm text-mute tabular-nums">
           {products.length} {products.length === 1 ? "producto" : "productos"}
         </p>
@@ -34,7 +34,7 @@ export default async function TiendaPage({ searchParams }: { searchParams: Promi
           <div className="flex flex-col items-start gap-4 py-20">
             <p className="font-wide text-xl font-semibold">No hay productos con esos filtros</p>
             <p className="text-ink/70">Prueba con otra talla o color, o quita algún filtro.</p>
-            <Link href="/tienda" className="inline-flex h-11 items-center rounded-full bg-ink px-6 text-sm font-medium text-paper">
+            <Link href="/tienda" className="inline-flex h-11 items-center press rounded-full px-6 text-sm font-medium">
               Limpiar filtros
             </Link>
           </div>

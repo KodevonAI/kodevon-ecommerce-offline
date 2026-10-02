@@ -1,14 +1,5 @@
 import Image from "next/image";
 
-// Tonos del placeholder: grises de papel y dos tintas oscuras, elegidos por hash del nombre (determinista).
-const TONES = [
-  { bg: "#ecebe5", fg: "#d9d8d0" },
-  { bg: "#e3e2db", fg: "#cfcec5" },
-  { bg: "#d7d6ce", fg: "#c4c3ba" },
-  { bg: "#1c1c1b", fg: "#2c2c2a" },
-  { bg: "#2a2a28", fg: "#3a3a37" },
-];
-
 function hash(s: string) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
@@ -21,24 +12,25 @@ export function ProductImage({
 }: { src: string | null; name: string; sizes: string; priority?: boolean; className?: string }) {
   if (src) {
     return (
-      <div className={`relative aspect-[4/5] overflow-hidden bg-shade ${className}`}>
-        <Image src={src} alt={name} fill sizes={sizes} priority={priority} className="object-cover" />
+      <div className={`t-frame relative aspect-[4/5] bg-shade ${className}`}>
+        <Image src={src} alt={name} fill sizes={sizes} priority={priority} className="object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-safe:group-hover:scale-[1.03]" />
       </div>
     );
   }
-  const tone = TONES[hash(name) % TONES.length];
+  const tone = hash(name) % 6;
   const word = name.split(" ").slice(-1)[0] ?? name;
   return (
     <div
       role="img"
       aria-label={`${name} (sin foto)`}
-      className={`@container relative flex aspect-[4/5] items-end overflow-hidden ${className}`}
-      style={{ backgroundColor: tone.bg }}
+      className={`t-frame @container relative flex aspect-[4/5] items-end ${className}`}
+      style={{ backgroundColor: `var(--ph-bg-${tone})`, color: "var(--store-ink)" }}
     >
+      <span aria-hidden className="pop-only halftone pointer-events-none absolute inset-0 opacity-[0.16] [mask-image:linear-gradient(to_bottom,black,transparent_70%)]" />
       <span
         aria-hidden
         className="wordmark pointer-events-none -ml-[0.04em] block translate-y-[14%] select-none whitespace-nowrap text-[30cqw] uppercase leading-[0.8]"
-        style={{ color: tone.fg }}
+        style={{ color: `var(--ph-fg-${tone})`, fontSize: `min(30cqw, ${(104 / Math.max(word.length, 1)).toFixed(1)}cqw)` }}
       >
         {word}
       </span>

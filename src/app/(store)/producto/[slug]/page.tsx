@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Gallery } from "@/components/store/Gallery";
 import { Price, discountPct } from "@/components/store/Price";
 import { VariantPicker } from "@/components/store/VariantPicker";
-import { cachedProduct } from "@/server/cached";
+import { cachedProduct, storeSettings } from "@/server/cached";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ talla?: string | string[] }> };
 
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params, searchParams }: Props) {
-  const p = await cachedProduct((await params).slug);
+  const [p, settings] = await Promise.all([cachedProduct((await params).slug), storeSettings()]);
   if (!p) notFound();
   const tallaParam = (await searchParams).talla;
   const talla = Array.isArray(tallaParam) ? tallaParam[0] : tallaParam;
@@ -37,22 +37,22 @@ export default async function ProductPage({ params, searchParams }: Props) {
       <div className="grid gap-8 md:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] md:gap-12 lg:gap-20">
         <Gallery images={p.images} name={p.name} />
         <div className="md:sticky md:top-24 md:self-start">
-          <h1 className="font-wide text-3xl font-semibold leading-[1.05] md:text-4xl">{p.name}</h1>
+          <h1 className="font-wide text-3xl leading-[1.05] md:text-5xl">{p.name}</h1>
           {p.colorName && <p className="mt-2 text-base text-mute">{p.colorName}</p>}
-          <div className="mt-4 flex items-center gap-3 text-lg">
+          <div className="mt-4 flex items-center gap-3 text-xl font-semibold">
             <Price price={p.price} salePrice={p.salePrice} />
-            {pct > 0 && !soldOut && <span className="bg-ink px-2 py-0.5 text-xs font-medium tabular-nums text-paper">−{pct}%</span>}
+            {pct > 0 && !soldOut && <span className="t-sale t-sale--inline callout">−{pct}%</span>}
           </div>
           <div className="mt-8">
-            <VariantPicker key={p.slug} variants={p.variants} colorName={p.colorName} siblings={p.siblings ?? []} currentSlug={p.slug} initialSize={talla} />
+            <VariantPicker key={p.slug} productName={p.name} whatsappNumber={settings.whatsappNumber} variants={p.variants} colorName={p.colorName} siblings={p.siblings ?? []} currentSlug={p.slug} initialSize={talla} />
           </div>
           {p.description && (
-            <div className="mt-8 border-t border-line pt-6">
+            <div className="mt-8 t-rule-t pt-6">
               <h2 className="mb-2 text-sm font-medium">Descripción</h2>
               <p className="max-w-prose whitespace-pre-line leading-relaxed text-ink/80">{p.description}</p>
             </div>
           )}
-          <p className="mt-6 border-t border-line pt-6 text-sm text-ink/70">
+          <p className="t-rule-t mt-6 pt-6 text-sm text-ink/80">
             El envío se acuerda por WhatsApp cuando confirmamos tu pedido.
           </p>
         </div>

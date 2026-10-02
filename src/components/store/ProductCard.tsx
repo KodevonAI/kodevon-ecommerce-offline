@@ -14,26 +14,28 @@ export function ProductCard({ product, priority }: { product: Card; priority?: b
   return (
     <Link href={`/producto/${product.slug}`} className="group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink">
       <div className="relative">
-        <ProductImage
-          src={product.image}
-          name={product.name}
-          priority={priority}
-          sizes="(min-width: 1024px) 25vw, 50vw"
-          className={product.inStock ? "" : "opacity-60 grayscale"}
-        />
+        <div className="t-lift">
+          <ProductImage
+            src={product.image}
+            name={product.name}
+            priority={priority}
+            sizes="(min-width: 1024px) 25vw, 50vw"
+            className={product.inStock ? "" : "opacity-60 grayscale"}
+          />
+        </div>
         {!product.inStock ? (
-          <span className="absolute left-0 top-0 bg-ink px-2 py-1 text-xs font-medium text-paper">Agotado</span>
+          <span className="t-soldout callout">Agotado</span>
         ) : pct > 0 ? (
-          <span className="absolute left-0 top-0 bg-paper px-2 py-1 text-xs font-medium tabular-nums text-ink">−{pct}%</span>
+          <span className="t-sale callout">−{pct}%</span>
         ) : null}
       </div>
       <div className="mt-3 flex flex-col gap-0.5 pr-2 text-sm">
         <h3 className="font-medium leading-snug underline-offset-4 group-hover:underline">{product.name}</h3>
-        <Price price={product.price} salePrice={product.salePrice} className="text-ink/80" />
+        <Price price={product.price} salePrice={product.salePrice} className="font-medium" />
         <div className="mt-1 flex items-center gap-1.5 text-xs text-mute">
           <span aria-hidden className="flex items-center gap-1">
             {shown.map((d, i) => (
-              <span key={`${d.colorName}-${i}`} title={d.colorName} className="block size-3 rounded-full border border-black/15" style={{ backgroundColor: d.colorHex }} />
+              <span key={`${d.colorName}-${i}`} title={d.colorName} className="block size-3 rounded-full t-dot" style={{ backgroundColor: d.colorHex }} />
             ))}
             {extra > 0 && <span className="ml-0.5 tabular-nums">+{extra}</span>}
           </span>

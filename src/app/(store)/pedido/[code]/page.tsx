@@ -32,8 +32,8 @@ export default async function OrderPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-[720px] px-4 pb-16 pt-6 md:px-8 md:pt-10">
       <p className="text-sm text-mute">Pedido</p>
-      <h1 className="font-wide text-3xl font-semibold leading-[1.05] md:text-4xl">{order.code}</h1>
-      <p className="mt-4 inline-block border border-ink px-3 py-1 text-sm font-medium">{STATUS_LABEL[order.status]}</p>
+      <h1 className="font-wide text-4xl leading-[1.05] md:text-5xl">{order.code}</h1>
+      <p className="t-chip mt-4 px-3 py-1 text-sm font-medium">{STATUS_LABEL[order.status]}</p>
 
       <ul className="mt-8 border-t border-line">
         {order.lines.map((l, i) => (
@@ -53,7 +53,7 @@ export default async function OrderPage({ params }: Props) {
         <p className="mt-8 text-sm">Tu pedido está pendiente: lo confirmamos por WhatsApp. Si no se abrió la conversación, ábrela de nuevo.</p>
       )}
       <div className="mt-6 flex flex-wrap items-center gap-6">
-        <a href={waUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-12 items-center rounded-full bg-ink px-8 font-medium text-paper hover:opacity-85">
+        <a href={waUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-12 items-center press rounded-full px-8 font-medium">
           Abrir WhatsApp de nuevo
         </a>
         <Link href="/tienda" className="text-sm underline underline-offset-4">Seguir comprando</Link>

@@ -13,10 +13,10 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 pb-16 pt-6 md:px-8 md:pt-10">
-      <h1 className="font-wide text-3xl font-semibold leading-[1.05] md:text-4xl">Carrito</h1>
+      <h1 className="font-wide text-4xl leading-[1.05] md:text-5xl">Carrito</h1>
 
       {notices.length > 0 && (
-        <div role="status" className="mt-6 border border-ink p-4 text-sm">
+        <div role="status" className="mt-6 t-notice p-4 text-sm">
           <ul className="flex flex-col gap-1">
             {notices.map((n, i) => <li key={i}>{n}</li>)}
           </ul>
@@ -26,17 +26,30 @@ export default function CartPage() {
 
       {failed && <p role="alert" className="mt-6 text-sm">No pudimos cargar tu carrito. Revisa tu conexión y recarga la página.</p>}
 
-      {loading && !failed && <p className="mt-8 text-mute" aria-live="polite">Cargando carrito…</p>}
+      {loading && !failed && (
+        <div className="mt-8 border-t border-line" aria-live="polite" aria-busy="true">
+          <span className="sr-only">Cargando carrito…</span>
+          {[0, 1].map((i) => (
+            <div key={i} aria-hidden className="grid animate-pulse grid-cols-[88px_minmax(0,1fr)] gap-4 border-b border-line py-5 sm:grid-cols-[112px_minmax(0,1fr)]">
+              <div className="aspect-[4/5] bg-shade" />
+              <div className="flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="h-4 w-2/3 bg-shade" />
+                  <div className="h-3 w-1/3 bg-shade" />
+                </div>
+                <div className="h-10 w-28 bg-shade" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {empty && !failed && (
         <div className="mt-10 border-t border-line pt-10">
           <p className="text-lg">Tu carrito está vacío.</p>
-          <Link href="/tienda" className="mt-6 inline-flex h-12 items-center rounded-full bg-ink px-8 font-medium text-paper hover:opacity-85">
+          <Link href="/tienda" className="mt-6 inline-flex h-12 items-center press rounded-full px-8 font-medium">
             Ir a la tienda
           </Link>
-          <button type="button" disabled className="mt-4 flex h-13 w-full cursor-not-allowed items-center justify-center rounded-full bg-line text-base font-medium text-mute sm:w-64">
-            Continuar
-          </button>
         </div>
       )}
 
@@ -58,10 +71,10 @@ export default function CartPage() {
                     <p className="font-medium tabular-nums">{formatCop(l.price * l.qty)}</p>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex h-10 items-center border border-line" role="group" aria-label={`Cantidad de ${l.productName}`}>
+                    <div className="t-qty flex h-10 items-center" role="group" aria-label={`Cantidad de ${l.productName}`}>
                       <button type="button" className="h-full w-10 text-lg" aria-label="Restar uno" onClick={() => setQty(l.variantId, l.qty - 1, l.stock)}>−</button>
                       <output className="w-8 text-center text-sm tabular-nums" aria-live="polite">{l.qty}</output>
-                      <button type="button" className="h-full w-10 text-lg disabled:text-line" aria-label="Sumar uno" disabled={l.qty >= Math.min(l.stock, 20)} onClick={() => setQty(l.variantId, l.qty + 1, l.stock)}>+</button>
+                      <button type="button" className="h-full w-10 text-lg disabled:text-ink/30" aria-label="Sumar uno" disabled={l.qty >= Math.min(l.stock, 20)} onClick={() => setQty(l.variantId, l.qty + 1, l.stock)}>+</button>
                     </div>
                     <button type="button" onClick={() => remove(l.variantId)} className="py-2 text-sm underline underline-offset-4">Quitar</button>
                   </div>
@@ -70,13 +83,13 @@ export default function CartPage() {
             ))}
           </ul>
 
-          <aside className="md:sticky md:top-24 md:self-start">
+          <aside className="t-panel p-5 md:sticky md:top-24 md:self-start">
             <div className="flex items-baseline justify-between border-b border-line pb-4">
               <span>Total productos</span>
               <span className="text-xl font-semibold tabular-nums">{formatCop(total)}</span>
             </div>
             <p className="mt-4 text-sm text-ink/70">El envío se acuerda por WhatsApp.</p>
-            <Link href="/checkout" className="mt-6 flex h-13 w-full items-center justify-center rounded-full bg-ink text-base font-medium text-paper hover:opacity-85">
+            <Link href="/checkout" className="mt-6 flex h-13 w-full items-center justify-center press rounded-full text-base font-medium">
               Continuar
             </Link>
             <Link href="/tienda" className="mt-4 block text-center text-sm underline underline-offset-4">Seguir comprando</Link>

@@ -6,7 +6,7 @@ export function Price({ price, salePrice, className = "" }: { price: number; sal
   }
   return (
     <span className={`inline-flex flex-wrap items-baseline gap-x-2 tabular-nums ${className}`}>
-      <span>{formatCop(salePrice)}</span>
+      <span className="font-semibold text-pop-red">{formatCop(salePrice)}</span>
       <s className="text-mute decoration-1">
         <span className="sr-only">Antes </span>
         {formatCop(price)}

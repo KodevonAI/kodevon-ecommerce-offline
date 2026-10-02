@@ -12,9 +12,9 @@ export function CartLink() {
       aria-label={count > 0 ? `Carrito, ${count} ${count === 1 ? "producto" : "productos"}` : "Carrito vacío"}
       className="relative inline-flex size-10 items-center justify-center focus-visible:outline-2 focus-visible:outline-ink"
     >
-      <ShoppingBag className="size-5" strokeWidth={1.5} aria-hidden />
+      <ShoppingBag className="size-5" strokeWidth={2} aria-hidden />
       {count > 0 && (
-        <span className="absolute right-0.5 top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-ink px-1 text-[11px] font-semibold leading-[18px] tabular-nums text-paper">
+        <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center t-count rounded-full px-1 text-[11px] font-semibold leading-none tabular-nums">
           {count > 99 ? "99+" : count}
         </span>
       )}
