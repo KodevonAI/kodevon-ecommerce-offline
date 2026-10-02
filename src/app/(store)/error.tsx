@@ -11,17 +11,17 @@ export default function StoreError({ error, reset }: { error: Error & { digest?:
 
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col items-start gap-5 px-4 py-24 md:px-8 md:py-32">
-      <h1 className="font-wide text-2xl font-semibold md:text-3xl">Algo salió mal</h1>
+      <h1 className="font-wide text-2xl md:text-3xl">Algo salió mal</h1>
       <p className="max-w-md text-ink/70">No pudimos cargar esta página. Intenta de nuevo; si sigue fallando, vuelve a la tienda.</p>
       <div className="flex flex-wrap gap-3">
         <button
           type="button"
           onClick={() => reset()}
-          className="inline-flex h-11 items-center rounded-full bg-ink px-6 text-sm font-medium text-paper"
+          className="inline-flex h-11 items-center press rounded-full px-6 text-sm font-medium"
         >
           Reintentar
         </button>
-        <Link href="/tienda" className="inline-flex h-11 items-center rounded-full border border-ink/30 px-6 text-sm font-medium">
+        <Link href="/tienda" className="inline-flex h-11 items-center press-quiet rounded-full px-6 text-sm font-medium">
           Ver tienda
         </Link>
       </div>

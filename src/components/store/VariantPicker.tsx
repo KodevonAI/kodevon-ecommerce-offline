@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { MAX_QTY_PER_LINE } from "@/lib/validators";
 import { sortSizes } from "@/lib/sizes";
+import { buildWaUrl } from "@/lib/whatsapp";
 import { useCart } from "./CartProvider";
 
 export type PickerVariant = { id: number; size: string; stock: number };
@@ -13,8 +14,10 @@ export type PickerSibling = { slug: string; colorName: string; colorHex: string;
 const LOW_STOCK = 3;
 
 export function VariantPicker({
-  variants, colorName, siblings = [], currentSlug, initialSize,
+  variants, colorName, siblings = [], currentSlug, initialSize, productName, whatsappNumber,
 }: {
+  productName: string;
+  whatsappNumber: string;
   variants: PickerVariant[];
   colorName: string;
   siblings: PickerSibling[];
@@ -73,9 +76,9 @@ export function VariantPicker({
                   aria-current={current ? "true" : undefined}
                   aria-label={!c.inStock ? `${c.colorName} (agotado)` : c.colorName}
                   title={c.colorName}
-                  className={`relative size-10 rounded-full p-[3px] ring-1 transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${current ? "ring-2 ring-ink" : "ring-line hover:ring-mute"}`}
+                  className="t-swatch relative size-10 rounded-full p-[3px] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
                 >
-                  <span className="block size-full rounded-full border border-black/10" style={{ backgroundColor: c.colorHex }} />
+                  <span className="block size-full rounded-full t-dot" style={{ backgroundColor: c.colorHex }} />
                   {!c.inStock && <span aria-hidden className="absolute left-1/2 top-1/2 h-px w-[130%] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-ink/70" />}
                 </button>
               );
@@ -91,7 +94,7 @@ export function VariantPicker({
 
       {soldOut ? (
         <div className="flex flex-col gap-3">
-          <button type="button" disabled className="h-13 w-full cursor-not-allowed rounded-full bg-line text-base font-medium text-mute">
+          <button type="button" disabled className="h-13 w-full cursor-not-allowed rounded-full bg-shade text-base font-medium text-ink/60">
             Agotado
           </button>
           <p className="text-sm text-mute">Esta prenda no tiene unidades por ahora.</p>
@@ -100,8 +103,18 @@ export function VariantPicker({
       ) : (
         <>
       <fieldset>
-        <legend className="mb-3 flex w-full justify-between text-sm">
+        <legend className="mb-3 flex w-full items-baseline justify-between gap-4 text-sm">
           <span className="font-medium">Talla</span>
+          {whatsappNumber && (
+            <a
+              href={buildWaUrl(whatsappNumber, `Hola OFFLINE, tengo una duda de talla sobre ${productName}${colorName ? ` (${colorName})` : ""}`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4 hover:text-pop-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
+            >
+              ¿Dudas con tu talla? Pregúntanos
+            </a>
+          )}
         </legend>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
           {sizeVariants.map((v) => {
@@ -115,11 +128,7 @@ export function VariantPicker({
                 aria-pressed={selected}
                 aria-label={out ? `${v.size} (agotada)` : v.size}
                 onClick={() => { setSize(v.size); setAdded(null); setQty(1); }}
-                className={`h-11 border text-sm tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed ${
-                  selected ? "border-ink bg-ink text-paper"
-                  : out ? "border-line text-mute/70 line-through"
-                  : "border-line hover:border-ink"
-                }`}
+                className="t-size h-11 text-sm tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed"
               >
                 {v.size}
               </button>
@@ -131,17 +140,17 @@ export function VariantPicker({
         </p>
       </fieldset>
 
-      <div className="flex items-stretch gap-3">
-        <div className="flex h-13 items-center border border-line" role="group" aria-label="Cantidad">
-          <button type="button" className="h-full w-11 text-lg disabled:text-line" onClick={() => setQty(Math.max(1, q - 1))} disabled={!variant || q <= 1} aria-label="Restar uno">−</button>
+      <div className="flex items-stretch gap-3 max-md:sticky max-md:bottom-0 max-md:z-20 max-md:-mx-4 max-md:t-bar max-md:px-4 max-md:py-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="t-qty flex h-13 items-center" role="group" aria-label="Cantidad">
+          <button type="button" className="h-full w-11 text-lg disabled:text-ink/30" onClick={() => setQty(Math.max(1, q - 1))} disabled={!variant || q <= 1} aria-label="Restar uno">−</button>
           <output className="w-8 text-center text-sm tabular-nums" aria-live="polite">{q}</output>
-          <button type="button" className="h-full w-11 text-lg disabled:text-line" onClick={() => setQty(Math.min(room, q + 1))} disabled={!variant || q >= room} aria-label="Sumar uno">+</button>
+          <button type="button" className="h-full w-11 text-lg disabled:text-ink/30" onClick={() => setQty(Math.min(room, q + 1))} disabled={!variant || q >= room} aria-label="Sumar uno">+</button>
         </div>
         <button
           type="button"
           onClick={onAdd}
           disabled={!variant || room <= 0}
-          className="h-13 flex-1 rounded-full bg-ink text-base font-medium text-paper transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:bg-line disabled:text-mute"
+          className="h-13 flex-1 press rounded-full text-base font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:bg-shade disabled:text-ink/70 disabled:ring-1 disabled:ring-inset disabled:ring-line"
         >
           {!variant ? "Elige una talla" : room <= 0 ? "Ya tienes todas las unidades" : "Agregar al carrito"}
         </button>

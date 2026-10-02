@@ -35,7 +35,7 @@ function toQuery(f: ActiveFilters): string {
 }
 
 const pill =
-  "inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-full border border-line px-3.5 text-sm transition-colors hover:border-ink peer-checked:border-ink peer-checked:bg-ink peer-checked:text-paper peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink";
+  "t-pill inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-full px-3.5 text-sm peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink";
 
 function Group({ legend, children }: { legend: string; children: React.ReactNode }) {
   return (
@@ -67,9 +67,9 @@ export function Filters({ options, active }: { options: FilterOptions; active: A
   if (active.q) chips.push({ label: `“${active.q}”`, href: toQuery({ ...active, q: undefined }) });
 
   return (
-    <div className="border-y border-line">
+    <div className="t-rule-y">
       <details className="group">
-        <summary className="flex h-12 cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium [&::-webkit-details-marker]:hidden focus-visible:outline-2 focus-visible:outline-ink">
+        <summary className="flex h-12 cursor-pointer font-semibold list-none items-center justify-between gap-4 text-sm font-medium [&::-webkit-details-marker]:hidden focus-visible:outline-2 focus-visible:outline-ink">
           <span>
             Filtrar y ordenar
             {chips.length > 0 && <span className="ml-2 text-mute tabular-nums">({chips.length})</span>}
@@ -96,7 +96,7 @@ export function Filters({ options, active }: { options: FilterOptions; active: A
             <Pill name="color" value="" checked={!active.color}>Todos</Pill>
             {options.colors.map((c) => (
               <Pill key={c.name} name="color" value={c.name} checked={active.color === c.name}>
-                <span aria-hidden className="mr-2 size-3.5 rounded-full border border-black/15" style={{ backgroundColor: c.hex }} />
+                <span aria-hidden className="mr-2 size-3.5 rounded-full t-dot" style={{ backgroundColor: c.hex }} />
                 {c.name}
               </Pill>
             ))}
@@ -107,12 +107,12 @@ export function Filters({ options, active }: { options: FilterOptions; active: A
               <legend className="mb-3 text-sm font-medium">Precio (COP)</legend>
               <div className="flex items-center gap-2">
                 <label className="sr-only" htmlFor="f-min">Precio mínimo</label>
-                <input id="f-min" name="min" type="number" inputMode="numeric" min={0} step={1000} placeholder="Mín." defaultValue={active.min}
-                  className="h-10 w-full min-w-0 rounded-none border border-line bg-transparent px-3 text-sm tabular-nums focus:border-ink focus:outline-none" />
+                <input id="f-min" name="min" type="number" inputMode="numeric" min={0} step={1000} placeholder="Mínimo…" defaultValue={active.min}
+                  className="h-10 w-full min-w-0 t-field px-3 text-sm tabular-nums" />
                 <span aria-hidden className="text-mute">–</span>
                 <label className="sr-only" htmlFor="f-max">Precio máximo</label>
-                <input id="f-max" name="max" type="number" inputMode="numeric" min={0} step={1000} placeholder="Máx." defaultValue={active.max}
-                  className="h-10 w-full min-w-0 rounded-none border border-line bg-transparent px-3 text-sm tabular-nums focus:border-ink focus:outline-none" />
+                <input id="f-max" name="max" type="number" inputMode="numeric" min={0} step={1000} placeholder="Máximo…" defaultValue={active.max}
+                  className="h-10 w-full min-w-0 t-field px-3 text-sm tabular-nums" />
               </div>
             </fieldset>
             <label className="flex cursor-pointer items-center gap-3 text-sm">
@@ -123,21 +123,21 @@ export function Filters({ options, active }: { options: FilterOptions; active: A
 
           <div className="flex flex-col gap-2">
             <label htmlFor="f-q" className="text-sm font-medium">Buscar</label>
-            <input id="f-q" name="q" type="search" defaultValue={active.q} placeholder="Nombre del producto" maxLength={80}
-              className="h-10 rounded-none border border-line bg-transparent px-3 text-sm focus:border-ink focus:outline-none" />
+            <input id="f-q" name="q" type="search" defaultValue={active.q} placeholder="Nombre del producto…" maxLength={80} autoComplete="off" spellCheck={false}
+              className="h-10 t-field px-3 text-sm" />
           </div>
 
           <div className="flex flex-col gap-2">
             <label htmlFor="f-sort" className="text-sm font-medium">Ordenar por</label>
             <select id="f-sort" name="sort" defaultValue={active.sort ?? "new"}
-              className="h-10 rounded-none border border-line bg-transparent px-3 text-sm focus:border-ink focus:outline-none">
+              className="h-10 t-field px-3 text-sm">
               {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
 
           <div className="flex items-end gap-4 md:col-span-2 lg:col-span-2 lg:justify-end">
             <Link href="/tienda" className="h-11 px-2 text-sm leading-[2.75rem] underline underline-offset-4">Limpiar filtros</Link>
-            <button type="submit" className="h-11 rounded-full bg-ink px-6 text-sm font-medium text-paper transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+            <button type="submit" className="h-11 press rounded-full px-6 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
               Aplicar filtros
             </button>
           </div>
@@ -148,9 +148,9 @@ export function Filters({ options, active }: { options: FilterOptions; active: A
         <ul className="flex flex-wrap gap-2 pb-4" aria-label="Filtros activos">
           {chips.map((c) => (
             <li key={c.label}>
-              <Link href={c.href} className="inline-flex h-8 items-center gap-2 rounded-full bg-shade px-3 text-sm hover:bg-line" aria-label={`Quitar filtro ${c.label}`}>
+              <Link href={c.href} className="t-chip h-8 gap-2 px-3 text-sm hover:opacity-80" aria-label={`Quitar filtro ${c.label}`}>
                 {c.label}
-                <span aria-hidden className="text-mute">×</span>
+                <span aria-hidden>×</span>
               </Link>
             </li>
           ))}

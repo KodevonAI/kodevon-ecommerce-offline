@@ -65,6 +65,17 @@ Para el mismo modelo en otro color usa **Agregar otro color** (en la página del
 - **Archivar / Reactivar**: si tiene pedidos. El producto deja de verse en la tienda pero se conserva el historial; se puede reactivar.
 - Una talla quitada de un producto que ya tiene pedidos no se borra: queda con stock 0 (se conserva el historial) y reaparece en el editor con stock 0.
 
+## Temas visuales
+
+La tienda tiene dos temas, elegibles por el visitante desde el pie de página (cookie `offline-theme`, un año):
+
+- **apple** (predeterminado): sobrio y minimalista. Blanco/gris claro, un acento azul, radios grandes, sombras difusas.
+- **pop**: pop art de cómic. Papel crema, primarios planos, bordes gruesos, sombras duras, stickers y cinta de texto.
+
+Los dos comparten el mismo marcado: los tokens y las clases `t-*` / `press` viven en `src/app/globals.css` (`:root` es apple y `[data-theme="pop"]` lo sobrescribe). Lo que solo existe en un tema usa `.pop-only` / `.apple-only`. Para cambiar el tema por defecto edita `DEFAULT_THEME` en `src/lib/theme.ts`.
+
+Las páginas `/privacidad` y `/terminos` son un borrador basado en cómo funciona la tienda: que las revise un abogado antes de publicar. El sitemap usa `VERCEL_PROJECT_PRODUCTION_URL` para las URLs absolutas.
+
 ## Despliegue en Vercel
 
 1. Crea un repo remoto y súbelo (`git remote add origin …; git push -u origin main`).

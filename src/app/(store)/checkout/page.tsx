@@ -76,7 +76,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const field = "h-12 w-full border border-line bg-transparent px-3 text-base outline-none focus-visible:border-ink aria-[invalid=true]:border-ink";
+  const field = "t-field h-12 w-full px-3 text-base aria-[invalid=true]:border-pop-red";
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 pb-16 pt-6 md:px-8 md:pt-10">
@@ -96,7 +96,7 @@ export default function CheckoutPage() {
       {empty && !failed && (
         <div className="mt-10 border-t border-line pt-10">
           <p className="text-lg">Tu carrito está vacío.</p>
-          <Link href="/tienda" className="mt-6 inline-flex h-12 items-center rounded-full bg-ink px-8 font-medium text-paper hover:opacity-85">Ir a la tienda</Link>
+          <Link href="/tienda" className="mt-6 inline-flex h-12 items-center press rounded-full px-8 font-medium">Ir a la tienda</Link>
         </div>
       )}
 
@@ -111,13 +111,13 @@ export default function CheckoutPage() {
             </div>
             <div>
               <label htmlFor="phone" className="mb-2 block text-sm font-medium">Celular</label>
-              <input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="300 123 4567" value={phone} onChange={(e) => setPhone(e.target.value)}
+              <input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="300 123 4567…" value={phone} onChange={(e) => setPhone(e.target.value)}
                 onBlur={() => setTouched((t) => ({ ...t, phone: true }))} aria-invalid={Boolean(phoneMsg)} aria-describedby={phoneMsg ? "phone-err" : undefined} className={field} />
               {phoneMsg && <p id="phone-err" className="mt-2 text-sm">{phoneMsg}</p>}
             </div>
 
             {(error || issueMsgs.length > 0) && (
-              <div role="alert" className="border border-ink p-4 text-sm">
+              <div role="alert" className="t-notice p-4 text-sm">
                 {error && <p className="font-medium">{error}</p>}
                 {issueMsgs.length > 0 && <ul className="mt-2 flex flex-col gap-1">{issueMsgs.map((m, i) => <li key={i}>{m}</li>)}</ul>}
                 {issueMsgs.length > 0 && <Link href="/carrito" className="mt-3 inline-block underline underline-offset-4">Revisar carrito</Link>}
@@ -125,13 +125,13 @@ export default function CheckoutPage() {
             )}
 
             <button type="submit" disabled={pending}
-              className="h-13 rounded-full bg-ink text-base font-medium text-paper hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:bg-line disabled:text-mute">
+              className="h-13 press rounded-full text-base font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:bg-shade disabled:text-ink/70 disabled:ring-1 disabled:ring-inset disabled:ring-line">
               {pending ? "Enviando pedido…" : "Pedir por WhatsApp"}
             </button>
             <p className="text-sm text-ink/70">Te abrimos WhatsApp con tu pedido listo. Confirmamos disponibilidad y acordamos el envío por ahí.</p>
           </form>
 
-          <aside className="md:self-start">
+          <aside className="t-panel p-5 md:self-start">
             <h2 className="mb-3 text-sm font-medium">Resumen</h2>
             <ul className="border-t border-line">
               {lines.map((l) => (
