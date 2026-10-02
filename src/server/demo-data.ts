@@ -126,6 +126,8 @@ export function demoListProducts(f: CatalogFilters): ProductCard[] {
     (typeof f.min !== "number" || effective(p) >= f.min) &&
     (typeof f.max !== "number" || effective(p) <= f.max) &&
     (!f.sale || p.salePrice !== null) &&
+    (!f.ids || f.ids.includes(p.id)) &&
+    (!f.slugs || f.slugs.includes(p.slug)) &&
     (!q || p.name.toLowerCase().includes(q)),
   );
   rows.sort((a, b) =>
@@ -153,7 +155,8 @@ export function demoFilterOptions() {
   const colorMap = new Map<string, string>();
   for (const p of PRODUCTS) if (!colorMap.has(p.colorName)) colorMap.set(p.colorName, p.colorHex);
   const colors = [...colorMap].map(([name, hex]) => ({ name, hex })).sort((a, b) => a.name.localeCompare(b.name));
-  return { categories: CATEGORIES, sizes, colors };
+  const categories = CATEGORIES.filter((c) => PRODUCTS.some((p) => p.categorySlug === c.slug));
+  return { categories, sizes, colors };
 }
 
 export const DEMO_SETTINGS = { whatsappNumber: "3000000000", storeName: "OFFLINE", lowStockThreshold: 3 };

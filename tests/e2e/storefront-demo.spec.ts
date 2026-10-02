@@ -105,3 +105,44 @@ test("pedido inexistente muestra 404", async ({ page }) => {
   expect(res?.status()).toBe(404);
   await expect(page.getByText(/no existe/i)).toBeVisible();
 });
+
+test("el modo oscuro se alterna con el icono y persiste en la cookie", async ({ page }) => {
+  await page.goto("/");
+  const toggle = page.getByRole("button", { name: "Cambiar entre modo claro y oscuro" });
+  await toggle.click();
+  const first = await page.evaluate(() => document.documentElement.dataset.theme);
+  expect(["light", "dark"]).toContain(first);
+  await toggle.click();
+  const second = await page.evaluate(() => document.documentElement.dataset.theme);
+  expect(second).not.toBe(first);
+  await page.reload();
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(second);
+});
+
+test("favoritos: guardar desde la tienda y verlos en /favoritos", async ({ page }) => {
+  await page.goto("/tienda");
+  await page.getByRole("button", { name: /^Guardar Camiseta Pausa/ }).first().click();
+  await expect(page.getByRole("link", { name: "Favoritos, 1 producto" })).toBeVisible();
+  await page.goto("/favoritos");
+  await expect(page.getByRole("heading", { name: "Camiseta Pausa" })).toBeVisible();
+  await page.getByRole("button", { name: /^Quitar Camiseta Pausa/ }).click();
+  await expect(page.getByText("Aún no has guardado nada.")).toBeVisible();
+});
+
+test("la búsqueda del header lleva a la tienda filtrada", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Buscar productos" }).click();
+  await page.getByRole("searchbox", { name: "Buscar productos" }).fill("buzo");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/tienda\?q=buzo/);
+  await expect(page.getByRole("heading", { name: /Buzo/ }).first()).toBeVisible();
+});
+
+test("la guía de tallas se abre desde el producto", async ({ page }) => {
+  await page.goto("/producto/camiseta-pausa-negro");
+  await page.getByRole("button", { name: "Guía de tallas" }).click();
+  await expect(page.getByRole("dialog", { name: "Guía de tallas" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+

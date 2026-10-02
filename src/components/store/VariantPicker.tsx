@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { MAX_QTY_PER_LINE } from "@/lib/validators";
 import { sortSizes } from "@/lib/sizes";
-import { buildWaUrl } from "@/lib/whatsapp";
 import { useCart } from "./CartProvider";
+import { SizeGuide } from "./SizeGuide";
 
 export type PickerVariant = { id: number; size: string; stock: number };
 export type PickerSibling = { slug: string; colorName: string; colorHex: string; inStock: boolean };
@@ -105,16 +105,7 @@ export function VariantPicker({
       <fieldset>
         <legend className="mb-3 flex w-full items-baseline justify-between gap-4 text-sm">
           <span className="font-medium">Talla</span>
-          {whatsappNumber && (
-            <a
-              href={buildWaUrl(whatsappNumber, `Hola OFFLINE, tengo una duda de talla sobre ${productName}${colorName ? ` (${colorName})` : ""}`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline underline-offset-4 hover:text-pop-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
-            >
-              ¿Dudas con tu talla? Pregúntanos
-            </a>
-          )}
+          <SizeGuide productName={productName} colorName={colorName} whatsappNumber={whatsappNumber} />
         </legend>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
           {sizeVariants.map((v) => {

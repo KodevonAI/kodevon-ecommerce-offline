@@ -1,11 +1,13 @@
 import { and, asc, desc, eq, ilike, inArray, sql, type SQL } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { categories, productImages, products, variants } from "@/db/schema";
+import { categories, orderItems, orders, productImages, products, variants } from "@/db/schema";
 import { escapeLike } from "@/lib/like";
 
 export type CatalogFilters = {
   category?: string; size?: string; color?: string; min?: number; max?: number;
   sale?: boolean; q?: string; sort?: "new" | "price_asc" | "price_desc";
+  /** Solo estos productos (favoritos, más vendidos). Un arreglo vacío no devuelve nada. */
+  ids?: number[]; slugs?: string[];
 };
 export type ColorRef = { slug: string; colorName: string; colorHex: string };
 export type ProductCard = {
@@ -17,6 +19,7 @@ const effectivePrice = sql<number>`coalesce(${products.salePrice}, ${products.pr
 const firstImage = sql<string | null>`(select ${productImages.url} from ${productImages} where ${productImages.productId} = ${products.id} order by ${productImages.position} asc, ${productImages.id} asc limit 1)`;
 
 export async function listProducts(db: Db, f: CatalogFilters): Promise<ProductCard[]> {
+  if (f.ids?.length === 0 || f.slugs?.length === 0) return [];
   const conds: (SQL | undefined)[] = [eq(products.active, true)];
   if (f.category) conds.push(eq(categories.slug, f.category));
   if (f.size) conds.push(sql`exists (select 1 from ${variants} where ${variants.productId} = ${products.id} and ${variants.size} = ${f.size} and ${variants.stock} > 0)`);
@@ -24,6 +27,8 @@ export async function listProducts(db: Db, f: CatalogFilters): Promise<ProductCa
   if (typeof f.min === "number" && Number.isFinite(f.min)) conds.push(sql`${effectivePrice} >= ${f.min}`);
   if (typeof f.max === "number" && Number.isFinite(f.max)) conds.push(sql`${effectivePrice} <= ${f.max}`);
   if (f.sale) conds.push(sql`${products.salePrice} is not null`);
+  if (f.ids) conds.push(inArray(products.id, f.ids));
+  if (f.slugs) conds.push(inArray(products.slug, f.slugs));
   const q = f.q?.trim();
   if (q) conds.push(ilike(products.name, `%${escapeLike(q)}%`));
 
@@ -91,8 +96,11 @@ export async function getProductBySlug(db: Db, slug: string) {
 }
 
 export async function getFilterOptions(db: Db) {
+  // Solo categorías con al menos un producto activo: una "familia" vacía no se muestra en la tienda.
   const cats = await db.select({ slug: categories.slug, name: categories.name })
-    .from(categories).orderBy(asc(categories.position), asc(categories.name));
+    .from(categories)
+    .where(sql`exists (select 1 from ${products} where ${products.categoryId} = ${categories.id} and ${products.active} = true)`)
+    .orderBy(asc(categories.position), asc(categories.name));
   const sizeRows = await db
     .selectDistinct({ size: variants.size })
     .from(variants).innerJoin(products, eq(products.id, variants.productId))
@@ -129,4 +137,24 @@ export function redactInactiveLines(lines: CartLine[]): CartLine[] {
   return lines.map((l) =>
     l.active ? l : { variantId: l.variantId, active: false, productName: l.productName, colorName: l.colorName, size: l.size, slug: "", price: 0, stock: 0, image: null },
   );
+}
+
+/** Ids de los productos activos más vendidos (unidades en pedidos confirmados de los últimos `days` días). */
+export async function bestsellerIds(db: Db, limit = 8, days = 90): Promise<number[]> {
+  const units = sql<number>`sum(${orderItems.qty})::bigint`;
+  const rows = await db
+    .select({ productId: products.id, units })
+    .from(orderItems)
+    .innerJoin(orders, eq(orders.id, orderItems.orderId))
+    .innerJoin(variants, eq(variants.id, orderItems.variantId))
+    .innerJoin(products, eq(products.id, variants.productId))
+    .where(and(
+      eq(orders.status, "confirmed"),
+      eq(products.active, true),
+      sql`${orders.confirmedAt} >= now() - (${days}::int * interval '1 day')`,
+    ))
+    .groupBy(products.id)
+    .orderBy(desc(units), asc(products.id))
+    .limit(limit);
+  return rows.map((r) => r.productId);
 }
